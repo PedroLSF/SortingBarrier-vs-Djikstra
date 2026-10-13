@@ -254,11 +254,9 @@ relaxa de novo, o `BaseCase` relaxa de novo). As constantes normalizadas são es
 tamanhos: `comparações / (m·log^(2/3) n)` entre 2,4 e 2,6 para o BMSSP e `comparações / (m·log n)`
 entre 0,67 e 0,72 para o Dijkstra.
 
-![Tempo de execução nas malhas rodoviárias](figuras/fig1_tempo_reais.png)
-
 ![Comparações por aresta e exames de aresta](figuras/fig2_comparacoes_reais.png)
 
-![Dispersão da razão de tempo e de comparações entre fontes](figuras/fig8_dispersao_fontes.png)
+Outras figuras desta etapa em `figuras/`: `fig1_tempo_reais` (tempo por grafo) e `fig8_dispersao_fontes` (dispersão entre fontes).
 
 ### Etapa 2
 
@@ -278,9 +276,9 @@ BMSSP compara menos. A razão de tempo cai de 5,5 para 2,25 e ainda está caindo
 
 ![Comparações por aresta em função de log n e razão de comparações](figuras/fig3_escada_comparacoes.png)
 
-![Tempo absoluto e razão de tempo na escada](figuras/fig4_escada_tempo.png)
-
 ![Comparações divididas pela cota teórica de cada algoritmo](figuras/fig5_constantes.png)
+
+Tempo absoluto e razão de tempo na escada: `figuras/fig4_escada_tempo`.
 
 ### Etapa 3
 
@@ -295,15 +293,13 @@ Fixar `t` tira um ponto do COL, que continua três pontos acima dos outros com p
 Um quarto do desvio é parâmetro, três quartos é estrutura do grafo. O BMSSP é sensível ao grafo de
 um modo que o Dijkstra não é.
 
-![Razão de tempo e casos base com t do artigo e t fixo](figuras/fig7_kt_fixo.png)
+Figura: `figuras/fig7_kt_fixo`.
 
 ### Cotas do Lema 3.9
 
 O lema garante `|U| ≤ 4k·2^(lt)` e `|S| ≤ 2^(lt)` em toda chamada de nível `l`. Em todos os grafos
 e níveis, `|U|` ficou abaixo de 33% da cota e `|S|` no máximo igual à cota (igualdade só nos níveis
-0 e 1, onde ela vale 1 e `2^t`).
-
-![Fração da cota do Lema 3.9 atingida por nível](figuras/fig6_niveis_lema39.png)
+0 e 1, onde ela vale 1 e `2^t`). Figura: `figuras/fig6_niveis_lema39`.
 
 ### Em resumo
 
