@@ -1,0 +1,45 @@
+
+== rand-2^15-m3n: n=32768 m=98304 (carregado em 0.1s)
+  fonte      7297  BMSSP     278.6 ms   Dijkstra     50.6 ms   razão  5.50   comparações  1.17x   ok
+  fonte      1640  BMSSP     284.1 ms   Dijkstra     62.0 ms   razão  4.58   comparações  1.17x   ok
+  fonte     18025  BMSSP     283.4 ms   Dijkstra     50.2 ms   razão  5.65   comparações  1.17x   ok
+  mediana: BMSSP 283.4 ms   Dijkstra 50.6 ms   razão 5.60   (k=2, t=6, l=3)
+
+== rand-2^16-m3n: n=65536 m=196608 (carregado em 0.2s)
+  fonte     14593  BMSSP     678.7 ms   Dijkstra    132.5 ms   razão  5.12   comparações  1.15x   ok
+  fonte      3279  BMSSP     628.4 ms   Dijkstra    133.7 ms   razão  4.70   comparações  1.15x   ok
+  fonte     36049  BMSSP     629.6 ms   Dijkstra    134.8 ms   razão  4.67   comparações  1.17x   ok
+  mediana: BMSSP 629.6 ms   Dijkstra 133.7 ms   razão 4.71   (k=2, t=6, l=3)
+
+== rand-2^17-m3n: n=131072 m=393216 (carregado em 0.4s)
+  fonte     29185  BMSSP    1356.6 ms   Dijkstra    366.4 ms   razão  3.70   comparações  1.07x   ok
+  fonte      6557  BMSSP    1328.8 ms   Dijkstra    362.9 ms   razão  3.66   comparações  1.06x   ok
+  fonte     72098  BMSSP    1339.9 ms   Dijkstra    366.0 ms   razão  3.66   comparações  1.07x   ok
+  mediana: BMSSP 1339.9 ms   Dijkstra 366.0 ms   razão 3.66   (k=2, t=6, l=3)
+
+== rand-2^18-m3n: n=262144 m=786432 (carregado em 1.0s)
+  fonte     58370  BMSSP    2793.3 ms   Dijkstra    990.0 ms   razão  2.82   comparações  0.98x   ok
+  fonte     13113  BMSSP    2889.0 ms   Dijkstra   1002.1 ms   razão  2.88   comparações  0.97x   ok
+  fonte    144195  BMSSP    2744.7 ms   Dijkstra    923.5 ms   razão  2.97   comparações  0.97x   ok
+  mediana: BMSSP 2793.3 ms   Dijkstra 990.0 ms   razão 2.82   (k=2, t=6, l=3)
+
+== rand-2^19-m3n: n=524288 m=1572864 (carregado em 2.2s)
+  fonte    116740  BMSSP    6670.0 ms   Dijkstra   2329.8 ms   razão  2.86   comparações  1.04x   ok
+  fonte     26226  BMSSP    6451.3 ms   Dijkstra   2341.7 ms   razão  2.75   comparações  1.05x   ok
+  fonte    288390  BMSSP    6681.9 ms   Dijkstra   2343.0 ms   razão  2.85   comparações  1.04x   ok
+  mediana: BMSSP 6670.0 ms   Dijkstra 2341.7 ms   razão 2.85   (k=2, t=7, l=3)
+
+== rand-2^20-m3n: n=1048576 m=3145728 (carregado em 4.5s)
+  fonte    233479  BMSSP   13427.4 ms   Dijkstra   5630.0 ms   razão  2.38   comparações  0.96x   ok
+  fonte     52452  BMSSP   13610.3 ms   Dijkstra   5607.7 ms   razão  2.43   comparações  0.96x   ok
+  fonte    576779  BMSSP   13470.4 ms   Dijkstra   5660.4 ms   razão  2.38   comparações  0.96x   ok
+  mediana: BMSSP 13470.4 ms   Dijkstra 5630.0 ms   razão 2.39   (k=2, t=7, l=3)
+
+== rand-2^21-m3n: n=2097152 m=6291456 (carregado em 9.4s)
+  fonte    466957  BMSSP   29538.8 ms   Dijkstra  13101.4 ms   razão  2.25   comparações  0.92x   ok
+  fonte    104903  BMSSP   28835.5 ms   Dijkstra  13371.6 ms   razão  2.16   comparações  0.91x   ok
+  fonte   1153557  BMSSP   29901.2 ms   Dijkstra  13303.6 ms   razão  2.25   comparações  0.91x   ok
+  mediana: BMSSP 29538.8 ms   Dijkstra 13303.6 ms   razão 2.22   (k=2, t=7, l=3)
+
+Resultados em resultados_sintetico.csv
+FIM: exit=0
