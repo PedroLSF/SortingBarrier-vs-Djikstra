@@ -254,7 +254,11 @@ relaxa de novo, o `BaseCase` relaxa de novo). As constantes normalizadas são es
 tamanhos: `comparações / (m·log^(2/3) n)` entre 2,4 e 2,6 para o BMSSP e `comparações / (m·log n)`
 entre 0,67 e 0,72 para o Dijkstra.
 
-Figuras: `fig1_tempo_reais`, `fig2_comparacoes_reais`, `fig6_niveis_lema39`, `fig8_dispersao_fontes`.
+![Tempo de execução nas malhas rodoviárias](figuras/fig1_tempo_reais.png)
+
+![Comparações por aresta e exames de aresta](figuras/fig2_comparacoes_reais.png)
+
+![Dispersão da razão de tempo e de comparações entre fontes](figuras/fig8_dispersao_fontes.png)
 
 ### Etapa 2
 
@@ -272,7 +276,11 @@ As comparações do Dijkstra crescem com `log n` (expoente ajustado 1,04). As do
 planas (expoente 0,31, abaixo dos 0,67 da cota). As curvas cruzam em `2^18` e a partir de `2^20` o
 BMSSP compara menos. A razão de tempo cai de 5,5 para 2,25 e ainda está caindo em `2^21`.
 
-Figuras: `fig3_escada_comparacoes`, `fig4_escada_tempo`, `fig5_constantes`.
+![Comparações por aresta em função de log n e razão de comparações](figuras/fig3_escada_comparacoes.png)
+
+![Tempo absoluto e razão de tempo na escada](figuras/fig4_escada_tempo.png)
+
+![Comparações divididas pela cota teórica de cada algoritmo](figuras/fig5_constantes.png)
 
 ### Etapa 3
 
@@ -287,13 +295,15 @@ Fixar `t` tira um ponto do COL, que continua três pontos acima dos outros com p
 Um quarto do desvio é parâmetro, três quartos é estrutura do grafo. O BMSSP é sensível ao grafo de
 um modo que o Dijkstra não é.
 
-Figura: `fig7_kt_fixo`.
+![Razão de tempo e casos base com t do artigo e t fixo](figuras/fig7_kt_fixo.png)
 
 ### Cotas do Lema 3.9
 
 O lema garante `|U| ≤ 4k·2^(lt)` e `|S| ≤ 2^(lt)` em toda chamada de nível `l`. Em todos os grafos
 e níveis, `|U|` ficou abaixo de 33% da cota e `|S|` no máximo igual à cota (igualdade só nos níveis
-0 e 1, onde ela vale 1 e `2^t`). Figura `fig6_niveis_lema39`.
+0 e 1, onde ela vale 1 e `2^t`).
+
+![Fração da cota do Lema 3.9 atingida por nível](figuras/fig6_niveis_lema39.png)
 
 ### Em resumo
 
