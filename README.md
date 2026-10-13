@@ -276,9 +276,7 @@ BMSSP compara menos. A razão de tempo cai de 5,5 para 2,25 e ainda está caindo
 
 ![Comparações por aresta em função de log n e razão de comparações](figuras/fig3_escada_comparacoes.png)
 
-![Comparações divididas pela cota teórica de cada algoritmo](figuras/fig5_constantes.png)
-
-Tempo absoluto e razão de tempo na escada: `figuras/fig4_escada_tempo`.
+Constantes ocultas (comparações divididas pela cota teórica): `figuras/fig5_constantes`. Tempo absoluto e razão de tempo na escada: `figuras/fig4_escada_tempo`.
 
 ### Etapa 3
 
