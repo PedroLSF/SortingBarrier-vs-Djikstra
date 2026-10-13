@@ -1,0 +1,9 @@
+
+== USA-road-d.USA: n=23947347 m=58333344 (carregado em 81.9s)
+  fonte  21455604  BMSSP  227009.1 ms   Dijkstra  28450.0 ms   razão  7.98   comparações  1.25x   ok
+  fonte   3735651  BMSSP  239829.0 ms   Dijkstra  27383.9 ms   razão  8.76   comparações  1.29x   ok
+  fonte    839222  BMSSP  232941.7 ms   Dijkstra  26290.8 ms   razão  8.86   comparações  1.27x   ok
+  mediana: BMSSP 232941.7 ms   Dijkstra 27383.9 ms   razão 8.51   (k=2, t=8, l=4)
+
+Resultados em resultados_usa.csv
+FIM: exit=0 pico_rss_kb=11517908
