@@ -1,9 +1,12 @@
 
-== USA-road-d.USA: n=23947347 m=58333344 (carregado em 81.9s)
-  fonte  21455604  BMSSP  227009.1 ms   Dijkstra  28450.0 ms   razão  7.98   comparações  1.25x   ok
-  fonte   3735651  BMSSP  239829.0 ms   Dijkstra  27383.9 ms   razão  8.76   comparações  1.29x   ok
-  fonte    839222  BMSSP  232941.7 ms   Dijkstra  26290.8 ms   razão  8.86   comparações  1.27x   ok
-  mediana: BMSSP 232941.7 ms   Dijkstra 27383.9 ms   razão 8.51   (k=2, t=8, l=4)
+== USA-road-d.USA: n=23947347 m=58333344 (carregado em 77.8s)
+  fonte  21455604 [     c]  BMSSP  237602.8 ms   Dijkstra  27309.9 ms   razão  8.70   comparações  1.97x   ok
+  fonte  21455604 [python]  BMSSP  240370.2 ms   Dijkstra  60880.9 ms   razão  3.95   comparações  1.97x   ok
+  fonte   3735651 [     c]  BMSSP  257821.1 ms   Dijkstra  27084.3 ms   razão  9.52   comparações  2.04x   ok
+  fonte   3735651 [python]  BMSSP  255213.6 ms   Dijkstra  55540.0 ms   razão  4.60   comparações  2.04x   ok
+  fonte    839222 [     c]  BMSSP  254735.8 ms   Dijkstra  25856.3 ms   razão  9.85   comparações  2.04x   ok
+  fonte    839222 [python]  BMSSP  250561.6 ms   Dijkstra  54616.0 ms   razão  4.59   comparações  2.04x   ok
+  mediana [     c]: BMSSP 254735.8 ms   Dijkstra 27084.3 ms   razão 9.41   (k=2, t=8, l=4)
+  mediana [python]: BMSSP 250561.6 ms   Dijkstra 55540.0 ms   razão 4.51   (k=2, t=8, l=4)
 
 Resultados em resultados_usa.csv
-FIM: exit=0 pico_rss_kb=11517908

@@ -19,6 +19,10 @@ Mapeamento código <-> artigo:
 
 Observação: o ganho do algoritmo é assintótico e vale no modelo comparação-adição;
 em tempo de parede, em Python, o Dijkstra com heapq é mais rápido nos grafos testados.
+usar_heap("python") troca o heapq em C pelo heapq.py puro da biblioteca padrão, no
+Dijkstra e no BaseCase, para medir a parcela do interpretador nessa diferença.
+A estrutura D acha os k menores por quickselect (seleção em tempo linear esperado), onde
+o artigo cita a seleção determinística de [BFP+73].
 Os logs servem para acompanhar a execução; a medição fica em benchmark.py.
 """
 
@@ -31,7 +35,8 @@ import sys
 import time
 from bisect import bisect_left
 from collections import deque
-from operator import itemgetter
+from itertools import compress
+from operator import itemgetter, not_
 
 from dimacs import load_gr
 
@@ -41,6 +46,50 @@ KEY_INF = (INF, INF, INF)  # cota B = ∞ na ordem total (d, hops, vértice)
 TRACE = 5  # nível abaixo de DEBUG para as operações internas da estrutura D
 logging.addLevelName(TRACE, "TRACE")
 log = logging.getLogger("bmssp")
+
+heappush, heappop = heapq.heappush, heapq.heappop
+_heapq_py = None
+
+
+def usar_heap(qual):
+    """'c': heapq acelerado (padrão); 'python': o mesmo heapq.py da biblioteca padrão sem o
+    módulo _heapq, para medir a parcela do interpretador. Vale para o Dijkstra e o BaseCase."""
+    global heappush, heappop, _heapq_py
+    if qual == "python" and _heapq_py is None:
+        import importlib.util
+        spec = importlib.util.find_spec("heapq")
+        _heapq_py = importlib.util.module_from_spec(spec)
+        c = sys.modules.get("_heapq")
+        sys.modules["_heapq"] = None
+        try:
+            spec.loader.exec_module(_heapq_py)
+        finally:
+            if c is None: del sys.modules["_heapq"]
+            else: sys.modules["_heapq"] = c
+    mod = _heapq_py if qual == "python" else heapq
+    heappush, heappop = mod.heappush, mod.heappop
+
+
+class _Chave:
+    """Chave da execução de contagem: cada `<` é uma comparação do modelo. _Chave.n acumula
+    as comparações exatas do heap (itens _Chave) e da estrutura D (_bisect_contado, _particiona)."""
+    __slots__ = ("par",)
+    n = 0
+
+    def __init__(self, par):
+        self.par = par
+
+    def __lt__(self, o):
+        _Chave.n += 1
+        return self.par < o.par
+
+
+def _push_contado(heap, par):
+    heappush(heap, _Chave(par))
+
+
+def _pop_contado(heap):
+    return heappop(heap).par
 
 
 # --------------------------------------------------------------------------- #
@@ -116,7 +165,58 @@ class _Block:
         self.upper = upper  # cota superior (apenas blocos de D1)
 
 
-_VALUE = itemgetter(1)
+def _bisect_contado(a, x):
+    lo, hi = 0, len(a)
+    while lo < hi:
+        mid = (lo + hi) >> 1
+        _Chave.n += 1
+        if a[mid] < x:
+            lo = mid + 1
+        else:
+            hi = mid
+    return lo
+
+
+# --- seleção dos k menores: o Lema 3.3 pede seleção em tempo linear ------------------- #
+_rng_sel = random.Random(2025)
+
+
+def _particiona(a, p, contar):
+    """Separa os pares de a (valores distintos, p ausente) em (< p, > p): uma comparação por elemento."""
+    flags = [kv[1] < p for kv in a]
+    if contar:
+        _Chave.n += len(a)
+    return list(compress(a, flags)), list(compress(a, map(not_, flags)))
+
+
+def _selecao(a, k, contar):
+    """(k menores de a, restantes, maior valor entre os k menores), com 0 < k < len(a), consumindo a.
+    Quickselect: particiona em torno de um pivô aleatório e só desce no lado que contém o k-ésimo;
+    O(len(a)) comparações esperadas. O artigo cita a seleção determinística de [BFP+73]."""
+    menores, maiores = [], []
+    while True:
+        if len(a) == 1:
+            menores += a
+            return menores, maiores, a[0][1]
+        i = _rng_sel.randrange(len(a))
+        piv = a[i]
+        a[i] = a[-1]
+        a.pop()
+        lo, hi = _particiona(a, piv[1], contar)
+        if k <= len(lo):
+            maiores += hi
+            maiores.append(piv)
+            a = lo
+        elif k == len(lo) + 1:
+            menores += lo
+            menores.append(piv)
+            maiores += hi
+            return menores, maiores, piv[1]
+        else:
+            menores += lo
+            menores.append(piv)
+            k -= len(lo) + 1
+            a = hi
 
 
 class BlockDS:
@@ -124,7 +224,8 @@ class BlockDS:
        D0: blocos vindos de BatchPrepend (sem limite de quantidade);
        D1: blocos vindos de Insert, cada um com cota superior, ordenados.
     Cada bloco tem no máximo M pares. A árvore rubro-negra de cotas do artigo
-    é substituída por uma lista ordenada + bisect (mesma ideia de busca).
+    é substituída por uma lista ordenada + bisect (mesma ideia de busca). Split,
+    Pull e BatchPrepend acham os k menores por seleção (quickselect), sem ordenar.
     Blocos esvaziados não são removidos na hora: Delete fica O(1) e os vazios
     na frente de cada sequência são descartados no Pull seguinte, como o
     artigo faz ao contar os elementos já deletados no tamanho do bloco."""
@@ -142,7 +243,7 @@ class BlockDS:
         self.n_prepend = 0
         self.tracing = log.isEnabledFor(TRACE)
         self.contar = contar
-        self.comparacoes = 0  # estimativa das comparações internas (bisect, sort, min), só com contar=True
+        self._bisect = _bisect_contado if contar else bisect_left
 
     def __len__(self):
         return len(self.where)
@@ -161,9 +262,9 @@ class BlockDS:
             if old.items[key] <= value:
                 return False
             self._delete(key)
-        i = min(bisect_left(self.uppers, value), len(self.D1) - 1)
+        i = min(self._bisect(self.uppers, value), len(self.D1) - 1)
         if self.contar:
-            self.comparacoes += len(self.uppers).bit_length() + (old is not None)
+            _Chave.n += old is not None
         blk = self.D1[i]
         blk.items[key] = value
         self.where[key] = blk
@@ -175,14 +276,11 @@ class BlockDS:
         return True
 
     def _split(self, i):
-        # O artigo usa mediana em O(M) [BFP+73]; em Python o sort em C sai mais barato.
         blk = self.D1[i]
-        ordered = sorted(blk.items.items(), key=_VALUE)
-        if self.contar:
-            self.comparacoes += len(ordered) * len(ordered).bit_length()
-        half = len(ordered) // 2
-        left = _Block(dict(ordered[:half]), upper=ordered[half - 1][1])
-        right = _Block(dict(ordered[half:]), upper=blk.upper)
+        items = list(blk.items.items())
+        esq, dir_, cota = _selecao(items, len(items) // 2, self.contar)
+        left = _Block(dict(esq), upper=cota)
+        right = _Block(dict(dir_), upper=blk.upper)
         for b in (left, right):
             for k in b.items:
                 self.where[k] = b
@@ -194,29 +292,32 @@ class BlockDS:
     def batch_prepend(self, pairs):
         """BatchPrepend: todos os valores são menores que qualquer valor em D."""
         best = {}
+        feitas = 0
         for k, v in pairs:
-            if k not in best or v < best[k]:
+            b = best.get(k)
+            if b is None:
                 best[k] = v
+            else:
+                feitas += 1
+                if v < b:
+                    best[k] = v
         items = []
         for k, v in best.items():
             old = self.where.get(k)
             if old is not None:
+                feitas += 1
                 if old.items[k] <= v:
                     continue
                 self._delete(k)
             items.append((k, v))
         if self.contar:
-            self.comparacoes += len(pairs) + len(items)
+            _Chave.n += feitas
         if not items:
             return 0
         if len(items) <= self.M:
             blocks = [_Block(dict(items))]
         else:
-            items.sort(key=_VALUE)
-            if self.contar:
-                self.comparacoes += len(items) * len(items).bit_length()
-            size = max(1, (self.M + 1) // 2)
-            blocks = [_Block(dict(items[j:j + size])) for j in range(0, len(items), size)]
+            blocks = [_Block(dict(parte)) for parte in self._em_blocos(items)]
         for b in blocks:
             for k in b.items:
                 self.where[k] = b
@@ -225,6 +326,13 @@ class BlockDS:
         if self.tracing:
             self._trace("BatchPrepend de %d pares em %d bloco(s) de D0", len(items), len(blocks))
         return len(items)
+
+    def _em_blocos(self, items):
+        """Parte items em blocos de até M, ordenados entre si, por medianas sucessivas: O(L log(L/M))."""
+        if len(items) <= self.M:
+            return [items]
+        esq, dir_, _ = _selecao(items, len(items) // 2, self.contar)
+        return self._em_blocos(esq) + self._em_blocos(dir_)
 
     def _compact(self):
         D0 = self.D0
@@ -251,10 +359,7 @@ class BlockDS:
                 cand.extend(blk.items.items())
                 got += len(blk.items)
         if len(cand) > M:
-            cand.sort(key=_VALUE)
-            if self.contar:
-                self.comparacoes += len(cand) * len(cand).bit_length()
-            del cand[M:]
+            cand, _, _ = _selecao(cand, M, self.contar)
         for k, _ in cand:
             self._delete(k)
 
@@ -269,7 +374,7 @@ class BlockDS:
             first_d1 = min(b1.values()) if b1 else KEY_INF
             x = min(first_d0, first_d1)
             if self.contar:
-                self.comparacoes += (len(b0) if b0 else 0) + (len(b1) if b1 else 0)
+                _Chave.n += (len(b0) - 1 if b0 else 0) + (len(b1) - 1 if b1 else 0) + 1
         S = [k for k, _ in cand]
         if self.tracing:
             self._trace("Pull -> %d chave(s), x = %s", len(S), self.fmt(x))
@@ -318,7 +423,7 @@ class DuanSSSP:
                           findpivots_W_total=0, findpivots_P_total=0,
                           pulls=0, inserts=0, prepends=0, heap_pushes=0, heap_pops=0,
                           comparacoes_cotas=0, adicoes=0, comparacoes_explicitas=0,
-                          comparacoes_heap_est=0, comparacoes_D_est=0, comparacoes_total=0)
+                          comparacoes_heap=0, comparacoes_D=0, comparacoes_total=0)
         self.niveis = {}  # l -> estatísticas das chamadas BMSSP naquele nível
 
     # ---- ordem total (Assumption 2.1) ------------------------------------- #
@@ -439,16 +544,16 @@ class DuanSSSP:
             log.info("%s  BaseCase(B=%s, S={%s}) -> mini-Dijkstra até k+1=%d vértices",
                      ind, self.fmt(B), self.g.name(x), self.k + 1)
         U0 = {x}
-        heap = [(self.key(x), x)]
+        push, pop = (_push_contado, _pop_contado) if self.contar else (heappush, heappop)
+        heap = []
+        push(heap, (self.key(x), x))
         in_heap = {x: self.key(x)}
         done = set()
         adj = self.g.adj
-        contar = self.contar
-        arestas = pushes = pops = comp_heap = cotas = 0
+        arestas = pushes = pops = cotas = 0
+        n0 = _Chave.n
         while heap and len(U0) < self.k + 1:
-            if contar:
-                comp_heap += 2 * len(heap).bit_length()
-            kv, u = heapq.heappop(heap)
+            kv, u = pop(heap)
             pops += 1
             if u in done or kv != self.key(u):
                 continue  # entrada obsoleta (DecreaseKey preguiçoso)
@@ -469,15 +574,13 @@ class DuanSSSP:
                             cotas += 1                               # kv2 < in_heap[v]
                         if old is None or kv2 < old:
                             in_heap[v] = kv2
-                            if contar:
-                                comp_heap += (len(heap) + 1).bit_length()
-                            heapq.heappush(heap, (kv2, v))
+                            push(heap, (kv2, v))
                             pushes += 1
         st["arestas_examinadas"] += arestas
         st["comparacoes_cotas"] += cotas
         st["heap_pushes"] += pushes
         st["heap_pops"] += pops
-        st["comparacoes_heap_est"] += comp_heap
+        st["comparacoes_heap"] += _Chave.n - n0
         if len(U0) <= self.k:
             if self.info:
                 log.info("%s    -> sucesso: B' = B = %s, U = %s", ind, self.fmt(B), self.fmt_set(U0))
@@ -577,7 +680,6 @@ class DuanSSSP:
         st["comparacoes_cotas"] += len(W) + 1
         st["inserts"] += D.n_insert
         st["prepends"] += D.n_prepend
-        st["comparacoes_D_est"] += D.comparacoes
         lv["iteracoes"] += i
         lv["parciais"] += Bp < B
         lv["U_total"] += len(U)
@@ -594,18 +696,19 @@ class DuanSSSP:
         Explícitas: uma adição e uma comparação por aresta examinada (d̂[u]+w ≤ d̂[v]),
         uma comparação por pop do heap (teste de entrada obsoleta) e as comparações com
         as cotas B/Bi/B'i e o teste de aresta justa, acumuladas em comparacoes_cotas.
-        Internas (só com contar=True): estimativas por operação, ⌈log₂ n⌉ por push e
-        2⌈log₂ n⌉ por pop no heap, e bisect/sort/min na estrutura D."""
+        Internas (só com contar=True): cada `<` executado no heap (comparacoes_heap) e na
+        estrutura D (comparacoes_D), via _Chave, _bisect_contado e _particiona."""
         st = self.stats
         st["adicoes"] += st["arestas_examinadas"]
         st["comparacoes_explicitas"] = st["arestas_examinadas"] + st["heap_pops"] + st["comparacoes_cotas"]
-        st["comparacoes_total"] = (st["comparacoes_explicitas"] + st["comparacoes_heap_est"]
-                                   + st["comparacoes_D_est"])
+        st["comparacoes_D"] = _Chave.n - self._n0 - st["comparacoes_heap"]
+        st["comparacoes_total"] = st["comparacoes_explicitas"] + st["comparacoes_heap"] + st["comparacoes_D"]
 
     def run(self):
         if self.info:
             log.info("Parâmetros: n=%d, m=%d, k=%d, t=%d, nível do topo l=%d",
                      self.g.n, self.g.m, self.k, self.t, self.top_level)
+        self._n0 = _Chave.n
         self.bmssp(self.top_level, KEY_INF, {self.s})
         self._fecha_contagem()
         return self.d
@@ -615,51 +718,33 @@ class DuanSSSP:
 # Dijkstra (referência)
 # --------------------------------------------------------------------------- #
 def dijkstra(g, s, contar=False):
-    """Dijkstra com heap binário e remoção preguiçosa. Com contar=True estima as
-    comparações internas do heap (⌈log₂ n⌉ por push, 2⌈log₂ n⌉ por pop); o laço
-    é duplicado para que a versão cronometrada não pague o teste."""
+    """Dijkstra com heap binário e remoção preguiçosa. Com contar=True os itens do heap são
+    _Chave e cada `<` executado pelo heap é contado (comparacoes_heap)."""
     d = [INF] * g.n
     d[s] = 0
-    heap = [(0, s)]
     adj = g.adj
-    relax = pops = arestas = comp_heap = 0
+    relax = pops = arestas = 0
     pushes = 1
-    if contar:
-        while heap:
-            comp_heap += 2 * len(heap).bit_length()
-            du, u = heapq.heappop(heap)
-            pops += 1
-            if du > d[u]:
-                continue
-            adj_u = iter(adj[u])
-            arestas += len(adj[u]) >> 1
-            for v, w in zip(adj_u, adj_u):
-                nd = du + w
-                if nd < d[v]:
-                    d[v] = nd
-                    relax += 1
-                    comp_heap += (len(heap) + 1).bit_length()
-                    heapq.heappush(heap, (nd, v))
-                    pushes += 1
-    else:
-        while heap:
-            du, u = heapq.heappop(heap)
-            pops += 1
-            if du > d[u]:
-                continue
-            adj_u = iter(adj[u])
-            arestas += len(adj[u]) >> 1
-            for v, w in zip(adj_u, adj_u):
-                nd = du + w
-                if nd < d[v]:
-                    d[v] = nd
-                    relax += 1
-                    heapq.heappush(heap, (nd, v))
-                    pushes += 1
+    n0 = _Chave.n
+    push, pop = (_push_contado, _pop_contado) if contar else (heappush, heappop)
+    heap = [_Chave((0, s))] if contar else [(0, s)]
+    while heap:
+        du, u = pop(heap)
+        pops += 1
+        if du > d[u]:
+            continue
+        adj_u = iter(adj[u])
+        arestas += len(adj[u]) >> 1
+        for v, w in zip(adj_u, adj_u):
+            nd = du + w
+            if nd < d[v]:
+                d[v] = nd
+                relax += 1
+                push(heap, (nd, v))
+                pushes += 1
     stats = dict(relaxacoes=relax, pops=pops, pushes=pushes, arestas_examinadas=arestas,
-                 adicoes=arestas, comparacoes_explicitas=arestas + pops,
-                 comparacoes_heap_est=comp_heap)
-    stats["comparacoes_total"] = stats["comparacoes_explicitas"] + comp_heap
+                 adicoes=arestas, comparacoes_explicitas=arestas + pops, comparacoes_heap=_Chave.n - n0)
+    stats["comparacoes_total"] = stats["comparacoes_explicitas"] + stats["comparacoes_heap"]
     return d, stats
 
 

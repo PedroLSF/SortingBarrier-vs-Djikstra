@@ -5,8 +5,8 @@ Para cada grafo e cada fonte sorteada (seed fixa), os dois algoritmos partem da
 MESMA fonte. Por fonte há duas execuções de cada algoritmo:
   1. cronometrada, sem instrumentação extra (ordem alternada a cada fonte para
      não favorecer o segundo com o cache aquecido);
-  2. de contagem, com contar=True, que estima as comparações internas de heap,
-     bisect, sort e min no modelo comparação-adição; não entra no tempo.
+  2. de contagem, com contar=True, que conta cada comparação executada no heap e
+     na estrutura D (modelo comparação-adição); não entra no tempo.
 As distâncias são conferidas a cada par; a carga do grafo fica fora da medição
 e o garbage collector fica desligado durante cada execução cronometrada.
 
@@ -14,6 +14,7 @@ Uso:
     python3 benchmark.py ../data/USA-road-d.NY.gr.gz ../data/USA-road-d.COL.gr.gz --fontes 10
     python3 benchmark.py --sintetico 15 16 17 18 19 20 --grau 3 --fontes 3 --saida sintetico.csv
     python3 benchmark.py ../data/USA-road-d.NY.gr.gz -k 2 -t 6      # k e t fixos
+    python3 benchmark.py ../data/USA-road-d.NY.gr.gz --heap both    # heapq em C e heapq.py puro
 """
 
 import argparse
@@ -26,7 +27,7 @@ import statistics
 import sys
 import time
 
-from bmssp import DuanSSSP, Graph, dijkstra, random_graph
+from bmssp import DuanSSSP, Graph, dijkstra, random_graph, usar_heap
 from dimacs import load_gr, random_sources
 
 MAX_NIVEL = 6
@@ -98,6 +99,8 @@ def main():
     ap.add_argument("--repeticoes", type=int, default=1, help="execuções cronometradas por fonte")
     ap.add_argument("-k", type=int, default=None, help="fixa o parâmetro k em todos os grafos")
     ap.add_argument("-t", type=int, default=None, help="fixa o parâmetro t em todos os grafos")
+    ap.add_argument("--heap", choices=("c", "python", "both"), default="c",
+                    help="heapq em C (padrão), heapq.py puro ou os dois, no Dijkstra e no BaseCase")
     ap.add_argument("--sem-aquecimento", action="store_true")
     ap.add_argument("--sem-contagem", action="store_true", help="pula a execução de contagem")
     ap.add_argument("--saida", default="resultados.csv")
@@ -105,6 +108,8 @@ def main():
     if not a.grafos and not a.sintetico:
         ap.error("informe arquivos DIMACS e/ou --sintetico")
     logging.basicConfig(level=logging.WARNING, format="%(message)s")
+    heaps = ("c", "python") if a.heap == "both" else (a.heap,)
+    usar_heap(heaps[0])
 
     with open(a.saida, "w", newline="", encoding="utf-8") as f:
         writer = None
@@ -117,57 +122,64 @@ def main():
                 dijkstra(g, fontes[0])
                 novo(fontes[0]).run()
 
-            tempos_bm, tempos_dj = [], []
+            tempos = {h: ([], []) for h in heaps}
             for idx, s in enumerate(fontes):
+                contagem = None
                 for rep in range(a.repeticoes):
-                    def roda_bmssp():
-                        solver = novo(s)
-                        return solver, solver.run()
-                    roda_dij = lambda: dijkstra(g, s)
-                    if (idx + rep) % 2 == 0:
-                        (solver, d_bm), t_bm = cronometra(roda_bmssp)
-                        (d_dj, st_dj), t_dj = cronometra(roda_dij)
-                    else:
-                        (d_dj, st_dj), t_dj = cronometra(roda_dij)
-                        (solver, d_bm), t_bm = cronometra(roda_bmssp)
-                    if not iguais(d_bm, d_dj):
-                        bad = next(v for v in range(g.n) if d_bm[v] != d_dj[v])
-                        print(f"DIVERGÊNCIA em {nome}, fonte {s + 1}: vértice {bad + 1} "
-                              f"BMSSP={d_bm[bad]} Dijkstra={d_dj[bad]}")
-                        sys.exit(1)
-                    if not a.sem_contagem and rep == 0:
-                        del solver, d_bm, d_dj   # libera 3 vetores de n antes do 2º solver (USA: ~2 GB)
-                        solver = novo(s, contar=True)
-                        solver.run()
-                        _, st_dj = dijkstra(g, s, contar=True)
-                    tempos_bm.append(t_bm)
-                    tempos_dj.append(t_dj)
+                    for heap in heaps:
+                        usar_heap(heap)
+                        def roda_bmssp():
+                            solver = novo(s)
+                            return solver, solver.run()
+                        roda_dij = lambda: dijkstra(g, s)
+                        if (idx + rep) % 2 == 0:
+                            (solver, d_bm), t_bm = cronometra(roda_bmssp)
+                            (d_dj, st_dj), t_dj = cronometra(roda_dij)
+                        else:
+                            (d_dj, st_dj), t_dj = cronometra(roda_dij)
+                            (solver, d_bm), t_bm = cronometra(roda_bmssp)
+                        if not iguais(d_bm, d_dj):
+                            bad = next(v for v in range(g.n) if d_bm[v] != d_dj[v])
+                            print(f"DIVERGÊNCIA em {nome}, fonte {s + 1}: vértice {bad + 1} "
+                                  f"BMSSP={d_bm[bad]} Dijkstra={d_dj[bad]}")
+                            sys.exit(1)
+                        if not a.sem_contagem:
+                            if contagem is None:   # as contagens não dependem do heap: uma por fonte
+                                del solver, d_bm, d_dj   # libera 3 vetores de n antes do 2º solver (USA: ~2 GB)
+                                solver = novo(s, contar=True)
+                                solver.run()
+                                _, st_dj = dijkstra(g, s, contar=True)
+                                contagem = solver, st_dj
+                            solver, st_dj = contagem
+                        tempos[heap][0].append(t_bm)
+                        tempos[heap][1].append(t_dj)
 
-                    log2n = math.log2(g.n)
-                    row = dict(grafo=nome, n=g.n, m=g.m, log2n=round(log2n, 3),
-                               log2n_23=round(log2n ** (2 / 3), 3),
-                               k=solver.k, t=solver.t, nivel_topo=solver.top_level,
-                               fonte=s + 1, rep=rep, primeiro="bmssp" if (idx + rep) % 2 == 0 else "dijkstra",
-                               t_bmssp_s=round(t_bm, 4), t_dijkstra_s=round(t_dj, 4),
-                               razao=round(t_bm / t_dj, 3))
-                    row.update({f"bmssp_{k}": v for k, v in solver.stats.items()})
-                    row.update({f"dijkstra_{k}": v for k, v in st_dj.items()})
-                    row["razao_comparacoes"] = ("" if a.sem_contagem else
-                                                round(solver.stats["comparacoes_total"]
-                                                      / max(1, st_dj["comparacoes_total"]), 3))
-                    row.update(colunas_nivel(solver.niveis))
-                    if writer is None:
-                        writer = csv.DictWriter(f, fieldnames=list(row))
-                        writer.writeheader()
-                    writer.writerow(row)
-                    f.flush()
-                    comp = "" if a.sem_contagem else f"   comparações {row['razao_comparacoes']:5.2f}x"
-                    print(f"  fonte {s + 1:>9}  BMSSP {t_bm * 1000:9.1f} ms   Dijkstra {t_dj * 1000:8.1f} ms   "
-                          f"razão {t_bm / t_dj:5.2f}{comp}   ok")
+                        log2n = math.log2(g.n)
+                        row = dict(grafo=nome, n=g.n, m=g.m, log2n=round(log2n, 3),
+                                   log2n_23=round(log2n ** (2 / 3), 3),
+                                   k=solver.k, t=solver.t, nivel_topo=solver.top_level, heap=heap,
+                                   fonte=s + 1, rep=rep, primeiro="bmssp" if (idx + rep) % 2 == 0 else "dijkstra",
+                                   t_bmssp_s=round(t_bm, 4), t_dijkstra_s=round(t_dj, 4),
+                                   razao=round(t_bm / t_dj, 3))
+                        row.update({f"bmssp_{k}": v for k, v in solver.stats.items()})
+                        row.update({f"dijkstra_{k}": v for k, v in st_dj.items()})
+                        row["razao_comparacoes"] = ("" if a.sem_contagem else
+                                                    round(solver.stats["comparacoes_total"]
+                                                          / max(1, st_dj["comparacoes_total"]), 3))
+                        row.update(colunas_nivel(solver.niveis))
+                        if writer is None:
+                            writer = csv.DictWriter(f, fieldnames=list(row))
+                            writer.writeheader()
+                        writer.writerow(row)
+                        f.flush()
+                        comp = "" if a.sem_contagem else f"   comparações {row['razao_comparacoes']:5.2f}x"
+                        print(f"  fonte {s + 1:>9} [{heap:>6}]  BMSSP {t_bm * 1000:9.1f} ms   "
+                              f"Dijkstra {t_dj * 1000:8.1f} ms   razão {t_bm / t_dj:5.2f}{comp}   ok")
 
-            med_bm, med_dj = statistics.median(tempos_bm), statistics.median(tempos_dj)
-            print(f"  mediana: BMSSP {med_bm * 1000:.1f} ms   Dijkstra {med_dj * 1000:.1f} ms   "
-                  f"razão {med_bm / med_dj:.2f}   (k={solver.k}, t={solver.t}, l={solver.top_level})")
+            for heap in heaps:
+                med_bm, med_dj = statistics.median(tempos[heap][0]), statistics.median(tempos[heap][1])
+                print(f"  mediana [{heap:>6}]: BMSSP {med_bm * 1000:.1f} ms   Dijkstra {med_dj * 1000:.1f} ms   "
+                      f"razão {med_bm / med_dj:.2f}   (k={solver.k}, t={solver.t}, l={solver.top_level})")
             del g, solver
             gc.collect()
 

@@ -2,7 +2,10 @@
 """Gera as figuras do relatório a partir dos CSVs do benchmark.
 
 Uso:
-    ../.venv/bin/python graficos.py            # lê resultados*.csv, escreve figuras/*.png e *.pdf
+    ../.venv/bin/python graficos.py            # lê resultados*.csv, escreve figuras/<etapa>/*.png e *.pdf
+
+Pastas: etapa1 (grafos reais), etapa2 (escada sintética, com a subpasta previsao), etapa3
+(k, t fixos) e complemento (heap em Python). As figuras 1 a 8 usam as linhas com heap="c".
 """
 
 import csv
@@ -55,12 +58,14 @@ def med(rows, chave, fn=None):
     return statistics.median(vals), min(vals), max(vals)
 
 
-def salva(fig, nome):
+def salva(fig, nome, pasta):
     fig.tight_layout()
+    d = os.path.join(SAIDA, pasta)
+    os.makedirs(d, exist_ok=True)
     for ext in ("png", "pdf"):
-        fig.savefig(os.path.join(SAIDA, f"{nome}.{ext}"), dpi=200, bbox_inches="tight")
+        fig.savefig(os.path.join(d, f"{nome}.{ext}"), dpi=200, bbox_inches="tight")
     plt.close(fig)
-    print("  ", nome)
+    print("  ", os.path.join(pasta, nome))
 
 
 def barras_err(ax, x, rows_por_grafo, chave, alg, desloc, largura):
@@ -84,7 +89,7 @@ def fig_tempo_reais(reais):
     ax.set_ylabel("Tempo por fonte (s), mediana entre fontes")
     ax.set_title("Malhas rodoviárias DIMACS: tempo de execução")
     ax.legend(loc="upper left")
-    salva(fig, "fig1_tempo_reais")
+    salva(fig, "fig1_tempo_reais", "etapa1")
 
 
 def fig_comparacoes_reais(reais):
@@ -92,10 +97,10 @@ def fig_comparacoes_reais(reais):
     x = np.arange(len(g))
     fig, (ax, ax2) = plt.subplots(1, 2, figsize=(10, 3.8), gridspec_kw={"width_ratios": [3, 2]})
     partes_b = [("bmssp_comparacoes_explicitas", "explícitas (relaxações, cotas)", 1.0),
-                ("bmssp_comparacoes_heap_est", "heap dos casos base", 0.65),
-                ("bmssp_comparacoes_D_est", "estrutura D (Lema 3.3)", 0.35)]
+                ("bmssp_comparacoes_heap", "heap dos casos base", 0.65),
+                ("bmssp_comparacoes_D", "estrutura D (Lema 3.3)", 0.35)]
     partes_d = [("dijkstra_comparacoes_explicitas", "explícitas (relaxações)", 1.0),
-                ("dijkstra_comparacoes_heap_est", "heap binário", 0.45)]
+                ("dijkstra_comparacoes_heap", "heap binário", 0.45)]
     for desloc, alg, partes in ((-0.2, "bmssp", partes_b), (0.2, "dijkstra", partes_d)):
         base = np.zeros(len(g))
         for chave, rot, alfa in partes:
@@ -125,7 +130,7 @@ def fig_comparacoes_reais(reais):
     ax2.set_ylabel("Exames de aresta / m")
     ax2.set_title("Quantas vezes cada aresta é examinada")
     ax2.legend(fontsize=8, loc="upper left", ncol=2)
-    salva(fig, "fig2_comparacoes_reais")
+    salva(fig, "fig2_comparacoes_reais", "etapa1")
 
 
 def ajuste_potencia(xs, ys):
@@ -139,10 +144,10 @@ def serie(g, fn):
     return xs, np.array(m), np.array(lo), np.array(hi)
 
 
-def fig_escada_comparacoes(sint, reais):
-    gs, gr = grupos(sint), grupos(reais)
+def fig_escada_comparacoes(sint):
+    gs = grupos(sint)
     fig, (ax, ax2) = plt.subplots(1, 2, figsize=(10, 3.8))
-    xx = np.linspace(14.5, 22.5, 50)
+    xx = np.linspace(14.5, 24.5, 50)
     for alg in ("bmssp", "dijkstra"):
         xs, m, lo, hi = serie(gs, lambda r, a=alg: r[f"{a}_comparacoes_total"] / r["m"])
         a, b = ajuste_potencia(xs, m)
@@ -150,30 +155,26 @@ def fig_escada_comparacoes(sint, reais):
                     label=f"{ROTULO[alg]}")
         ax.plot(xx, a * xx ** b, "--", color=COR[alg], alpha=0.6, lw=1,
                 label=f"ajuste ∝ (log₂ n)^{b:.2f}")
-    ax.set_xlabel("log₂ n   (grafos aleatórios, m = 3n)")
+    ax.set_xlabel("log₂ n   (etapa 2: escada sintética de grafos aleatórios, m = 3n)")
     ax.set_ylabel("Comparações por aresta")
     ax.set_title("Crescimento das comparações com n")
-    ax.set_xticks(range(15, 22))
+    ax.set_xticks(range(15, 25))
     ax.legend(fontsize=8)
 
     xs, m, lo, hi = serie(gs, lambda r: r["razao_comparacoes"])
-    ax2.errorbar(xs, m, yerr=[m - lo, hi - m], fmt="o-", color="k", capsize=3, label="aleatórios (m = 3n)")
-    xr, mr, lr, hr = serie(gr, lambda r: r["razao_comparacoes"])
-    ax2.errorbar(xr, mr, yerr=[mr - lr, hr - mr], fmt="s", mfc="white", color="k", capsize=3,
-                 label="malhas rodoviárias")
-    for x0, y0, (nome, _) in zip(xr, mr, gr):
-        ax2.annotate(nome_curto(nome), (x0, y0), textcoords="offset points", xytext=(5, 4), fontsize=8)
-    ax2.axhline(1, ls=":", color="gray")
+    ax2.errorbar(xs, m, yerr=[m - lo, hi - m], fmt="o-", color="k", capsize=3, label="escada sintética (m = 3n)")
+    ax2.axhline(1, ls=":", color="gray", label="empate")
     ax2.set_xlabel("log₂ n")
     ax2.set_ylabel("Comparações BMSSP / comparações Dijkstra")
     ax2.set_title("Razão de comparações (< 1: BMSSP compara menos)")
+    ax2.set_ylim(0, hi.max() * 1.15)
     ax2.set_xticks(range(15, 25))
     ax2.legend(fontsize=8)
-    salva(fig, "fig3_escada_comparacoes")
+    salva(fig, "fig3_escada_comparacoes", "etapa2")
 
 
-def fig_escada_tempo(sint, reais):
-    gs, gr = grupos(sint), grupos(reais)
+def fig_escada_tempo(sint):
+    gs = grupos(sint)
     fig, (ax, ax2) = plt.subplots(1, 2, figsize=(10, 3.8))
     ns = np.array([rows[0]["n"] for _, rows in gs])
     for alg in ("bmssp", "dijkstra"):
@@ -182,26 +183,21 @@ def fig_escada_tempo(sint, reais):
     ax.plot(ns, m[0] * ns / ns[0], ":", color="gray", lw=1, label="referência linear em n")
     ax.set_xscale("log", base=2)
     ax.set_yscale("log")
-    ax.set_xlabel("n   (grafos aleatórios, m = 3n)")
+    ax.set_xlabel("n   (etapa 2: escada sintética de grafos aleatórios, m = 3n)")
     ax.set_ylabel("Tempo por fonte (s)")
     ax.set_title("Tempo absoluto")
     ax.legend(fontsize=8)
 
     xs, m, lo, hi = serie(gs, lambda r: r["razao"])
-    ax2.errorbar(xs, m, yerr=[m - lo, hi - m], fmt="o-", color="k", capsize=3, label="aleatórios (m = 3n)")
-    xr, mr, lr, hr = serie(gr, lambda r: r["razao"])
-    ax2.errorbar(xr, mr, yerr=[mr - lr, hr - mr], fmt="s", mfc="white", color="k", capsize=3,
-                 label="malhas rodoviárias")
-    for x0, y0, (nome, _) in zip(xr, mr, gr):
-        ax2.annotate(nome_curto(nome), (x0, y0), textcoords="offset points", xytext=(5, 4), fontsize=8)
-    ax2.axhline(1, ls=":", color="gray")
-    ax2.set_ylim(0, max(hr) * 1.1)
+    ax2.errorbar(xs, m, yerr=[m - lo, hi - m], fmt="o-", color="k", capsize=3, label="escada sintética (m = 3n)")
+    ax2.axhline(1, ls=":", color="gray", label="empate")
+    ax2.set_ylim(0, max(hi) * 1.1)
     ax2.set_xlabel("log₂ n")
     ax2.set_ylabel("Tempo BMSSP / tempo Dijkstra")
     ax2.set_title("Razão de tempo de parede (Python)")
     ax2.set_xticks(range(15, 25))
     ax2.legend(fontsize=8)
-    salva(fig, "fig4_escada_tempo")
+    salva(fig, "fig4_escada_tempo", "etapa2")
 
 
 def fig_constantes(sint, reais):
@@ -209,18 +205,18 @@ def fig_constantes(sint, reais):
     normas = {"bmssp": ("m · (log₂ n)^(2/3)", lambda r: r["bmssp_comparacoes_total"] / (r["m"] * r["log2n_23"])),
               "dijkstra": ("m · log₂ n", lambda r: r["dijkstra_comparacoes_total"] / (r["m"] * r["log2n"]))}
     for alg, (rot, fn) in normas.items():
-        for rows, fmt, fam in ((sint, "o-", "aleatórios"), (reais, "s", "rodoviários")):
+        for rows, fmt, fam in ((sint, "o-", "escada sintética"), (reais, "s", "rodoviários")):
             xs, m, lo, hi = serie(grupos(rows), fn)
             ax.errorbar(xs, m, yerr=[m - lo, hi - m], fmt=fmt, color=COR[alg], capsize=3,
-                        mfc=COR[alg] if fam == "aleatórios" else "white",
+                        mfc=COR[alg] if fam == "escada sintética" else "white",
                         label=f"{ROTULO[alg].split()[0]} / [{rot}]  —  {fam}")
-    ax.set_ylim(0, 4.8)
+    ax.set_ylim(0, 3.0)
     ax.set_xlabel("log₂ n")
     ax.set_ylabel("Comparações / cota assintótica")
     ax.set_title("Constantes ocultas: comparações divididas pela cota teórica")
-    ax.set_xticks(range(15, 25))
+    ax.set_xticks(range(15, 26))
     ax.legend(fontsize=7.5, loc="upper center", ncol=2)
-    salva(fig, "fig5_constantes")
+    salva(fig, "fig5_constantes", "etapa2")
 
 
 def fig_niveis(reais):
@@ -242,7 +238,7 @@ def fig_niveis(reais):
     axes[0].set_ylim(0, 1.15)
     axes[-1].legend(fontsize=8, loc="upper right")
     fig.suptitle("Cotas do Lema 3.9 por nível de recursão (pior fonte de cada grafo)", fontsize=11)
-    salva(fig, "fig6_niveis_lema39")
+    salva(fig, "fig6_niveis_lema39", "etapa1")
 
 
 def fig_kt_fixo(reais, fixo):
@@ -269,7 +265,7 @@ def fig_kt_fixo(reais, fixo):
     ax2.set_title("Casos base executados")
     ax2.legend(fontsize=8)
     fig.suptitle("Controle de parâmetros: t do artigo (⌊log^(2/3) n⌋) vs t fixo", fontsize=11)
-    salva(fig, "fig7_kt_fixo")
+    salva(fig, "fig7_kt_fixo", "etapa3")
 
 
 def fig_dispersao(reais):
@@ -282,25 +278,114 @@ def fig_dispersao(reais):
     ax2.boxplot([[r["razao_comparacoes"] for r in rows] for _, rows in g], tick_labels=rotulos)
     ax2.set_ylabel("Comparações BMSSP / Dijkstra")
     ax2.set_title("Razão de comparações por fonte")
-    salva(fig, "fig8_dispersao_fontes")
+    salva(fig, "fig8_dispersao_fontes", "etapa1")
+
+
+def fig_heap_python(sint, sint_py, reais, reais_py):
+    fig, ax = plt.subplots(figsize=(7, 3.8))
+    for rs, rr, cor, rot in ((sint, reais, "k", "heapq em C"), (sint_py, reais_py, "#ff7f0e", "heapq.py puro")):
+        xs, m, lo, hi = serie(grupos(rs), lambda r: r["razao"])
+        ax.errorbar(xs, m, yerr=[m - lo, hi - m], fmt="o-", color=cor, capsize=3, label=f"escada sintética, {rot}")
+        if rr:
+            xr, mr, lr, hr = serie(grupos(rr), lambda r: r["razao"])
+            ax.errorbar(xr, mr, yerr=[mr - lr, hr - mr], fmt="s", mfc="white", color=cor, capsize=3,
+                        label=f"rodoviários, {rot}")
+    ax.axhline(1, ls=":", color="gray")
+    ax.set_xlabel("log₂ n")
+    ax.set_ylabel("Tempo BMSSP / tempo Dijkstra")
+    ax.set_title("Razão de tempo com o heap em C e com o heap em Python")
+    ax.set_xticks(range(15, 26))
+    ax.legend(fontsize=8)
+    salva(fig, "fig9_heap_python", "complemento")
+
+
+def ajuste_linear(xs, ys):
+    (b, a), cov = np.polyfit(xs, ys, 1, cov=True)
+    return a, b, math.sqrt(cov[0, 0])
+
+
+def fig_previsao(sint, sint_py):
+    """Extrapolações (curiosidade): ajustes lineares em log₂ n para as comparações e leis de
+    potência em n para o tempo, prolongados até o ponto em que BMSSP e Dijkstra se encontram."""
+    gs = grupos(sint)
+    xx = np.linspace(15, 48, 100)
+    fig, ax = plt.subplots(figsize=(7.5, 4.2))
+    ajustes = {}
+    for alg in ("bmssp", "dijkstra"):
+        xs, m, _, _ = serie(gs, lambda r, a=alg: r[f"{a}_comparacoes_total"] / r["m"])
+        ajustes[alg] = ajuste_linear(xs, m)
+        ax.plot(xs, m, "o", color=COR[alg])
+    (ab, bb, sb), (ad, bd, sd) = ajustes["bmssp"], ajustes["dijkstra"]
+    if bd > bb:
+        x_cruz = (ab - ad) / (bd - bb)
+        dx = x_cruz * math.hypot(sd, sb) / (bd - bb)
+        nota = f"  →  encontro em n ≈ 2^{x_cruz:.0f} (±{dx:.0f})"
+        ax.axvline(x_cruz, ls=":", color="gray", lw=1)
+    else:
+        nota = "  →  sem encontro"
+    ax.plot(xx, ab + bb * xx, "--", color=COR["bmssp"], lw=1, label=f"BMSSP: {ab:.1f} + {bb:.2f}·log₂n{nota}")
+    ax.plot(xx, ad + bd * xx, "--", color=COR["dijkstra"], lw=1, label=f"Dijkstra: {ad:.1f} + {bd:.2f}·log₂n")
+    ax.axvspan(15, 24, color="gray", alpha=0.08)
+    ax.text(19.5, ax.get_ylim()[1] * 0.97, "medido", ha="center", va="top", fontsize=9, color="gray")
+    ax.text(36, ax.get_ylim()[1] * 0.97, "extrapolação (ajuste linear em log₂ n)", ha="center", va="top", fontsize=9, color="gray")
+    ax.set_xlim(15, 48)
+    ax.set_xlabel("log₂ n   (escada sintética, m = 3n)")
+    ax.set_ylabel("Comparações por aresta")
+    ax.set_title("Previsão: onde o BMSSP passa a comparar menos que o Dijkstra")
+    ax.legend(fontsize=8, loc="lower right")
+    salva(fig, "prev1_comparacoes", "etapa2/previsao")
+
+    fig, ax = plt.subplots(figsize=(7.5, 4.2))
+    ns = np.array([rows[0]["n"] for _, rows in gs])
+    series = [("BMSSP", sint, "t_bmssp_s", COR["bmssp"], "o-"), ("Dijkstra, heapq em C", sint, "t_dijkstra_s", COR["dijkstra"], "o-")]
+    if sint_py:
+        series.append(("Dijkstra, heapq.py puro", sint_py, "t_dijkstra_s", "#ff7f0e", "s-"))
+    nn = np.logspace(15, 34, 100, base=2)
+    leis = {}
+    for rot, rows, chave, cor, fmt in series:
+        _, m, _, _ = serie(grupos(rows), lambda r, c=chave: r[c])
+        leis[rot] = ajuste_potencia(ns, m)
+        ax.plot(ns, m, fmt, color=cor)
+        ax.plot(nn, leis[rot][0] * nn ** leis[rot][1], "--", color=cor, lw=1, label=f"{rot}: t ∝ n^{leis[rot][1]:.2f}")
+    cb, ab_ = leis["BMSSP"]
+    notas = []
+    for rot, (cd, ad_) in leis.items():
+        if rot != "BMSSP" and ad_ > ab_:
+            n_cruz = (cb / cd) ** (1 / (ad_ - ab_))
+            ax.axvline(n_cruz, ls=":", color="gray", lw=1)
+            notas.append(f"{rot}: encontro em n ≈ 2^{math.log2(n_cruz):.0f}, ~{cb * n_cruz ** ab_ / 3600:.0f} h por fonte")
+    ax.axvspan(2 ** 15, 2 ** 24, color="gray", alpha=0.08)
+    ax.set_xscale("log", base=2)
+    ax.set_yscale("log")
+    ax.set_xlim(2 ** 15, 2 ** 34)
+    ax.set_xlabel("n   (escada sintética, m = 3n)")
+    ax.set_ylabel("Tempo por fonte (s)")
+    ax.set_title("Previsão: onde os tempos se encontram (leis de potência ajustadas)")
+    ax.legend(fontsize=7.5, loc="upper left", title="\n".join(notas) or None, title_fontsize=7.5)
+    salva(fig, "prev2_tempo", "etapa2/previsao")
 
 
 def main():
     os.makedirs(SAIDA, exist_ok=True)
-    reais = le("resultados.csv")
+    todos = le("resultados.csv")
     if os.path.exists("resultados_usa.csv"):
-        reais += le("resultados_usa.csv")
-    sint = le("resultados_sintetico.csv")
+        todos += le("resultados_usa.csv")
+    todos_sint = le("resultados_sintetico.csv")
     fixo = le("resultados_kt_fixo.csv")
+    heap = lambda rows, h: [r for r in rows if r.get("heap", "c") == h]
+    reais, sint = heap(todos, "c"), heap(todos_sint, "c")
     print(f"figuras em {SAIDA}/")
     fig_tempo_reais(reais)
     fig_comparacoes_reais(reais)
-    fig_escada_comparacoes(sint, reais)
-    fig_escada_tempo(sint, reais)
+    fig_escada_comparacoes(sint)
+    fig_escada_tempo(sint)
     fig_constantes(sint, reais)
     fig_niveis(reais)
     fig_kt_fixo(reais, fixo)
     fig_dispersao(reais)
+    if heap(todos_sint, "python"):
+        fig_heap_python(sint, heap(todos_sint, "python"), reais, heap(todos, "python"))
+    fig_previsao(sint, heap(todos_sint, "python"))
 
 
 if __name__ == "__main__":
