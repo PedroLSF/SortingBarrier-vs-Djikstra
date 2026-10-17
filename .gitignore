@@ -2,3 +2,7 @@
 __pycache__/
 *.pyc
 .venv/
+
+# grafos DIMACS (baixados para datasets/, ver datasets/README.md)
+datasets/*.gr
+datasets/*.gr.gz

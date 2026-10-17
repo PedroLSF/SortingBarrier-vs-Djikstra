@@ -4,9 +4,9 @@ Command line: run DuanSSSP (duan.py) and Dijkstra (dijkstra.py) on one graph, lo
 recursion of BMSSP and check that both algorithms give the same distances.
 
 Examples:
-    python3 bmssp.py --exemplo
-    python3 bmssp.py -n 50 --seed 3 --log DEBUG
-    python3 bmssp.py --dimacs USA-road-d.NY.gr.gz --fonte 1 --log WARNING
+    python3 src/bmssp.py --exemplo
+    python3 src/bmssp.py -n 50 --seed 3 --log DEBUG
+    python3 src/bmssp.py --dimacs datasets/USA-road-d.NY.gr.gz --fonte 1 --log WARNING
 """
 
 import argparse
@@ -15,11 +15,11 @@ import math
 import sys
 import time
 
-from comum import TRACE, log
-from dijkstra import dijkstra
-from dimacs import load_gr
-from duan import DuanSSSP
-from grafo import Graph, example_graph, random_graph, to_constant_degree
+from algoritmos.comum import TRACE, log
+from algoritmos.dijkstra import dijkstra
+from algoritmos.duan import DuanSSSP
+from grafos.dimacs import load_gr
+from grafos.grafo import Graph, example_graph, random_graph, to_constant_degree
 
 def main():
     """Command line: run BMSSP and Dijkstra on one graph (fixed example, random or DIMACS),

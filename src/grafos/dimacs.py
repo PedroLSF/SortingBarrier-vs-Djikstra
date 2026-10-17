@@ -6,7 +6,7 @@ Formato: linhas `c` são comentários, `p sp <n> <m>` é o cabeçalho e cada
 O grafo é devolvido 0-indexado.
 
 Uso como validador:
-    python3 dimacs.py --check data/USA-road-d.NY.gr.gz [outros arquivos...]
+    python3 src/grafos/dimacs.py --check datasets/USA-road-d.NY.gr.gz [outros arquivos...]
 """
 
 import argparse

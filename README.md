@@ -76,48 +76,62 @@ algorithm for single-source shortest path on undirected real-weighted graphs*, F
 
 ## 2. O código
 
-Oito módulos, sem dependências externas além do `matplotlib` para as figuras. Cada algoritmo fica
-no seu arquivo (`duan.py` e `dijkstra.py`); o que os dois precisam compartilhar, para serem trocados
-e contados do mesmo jeito, fica em `comum.py`.
+Sem dependências externas além do `matplotlib` para as figuras. Implementação, dados e resultados
+ficam em pastas separadas:
 
-| Arquivo | Conteúdo |
-|---|---|
-| `duan.py` | o algoritmo de Duan et al. (`DuanSSSP`: Algoritmos 1, 2 e 3) |
-| `estrutura_d.py` | a estrutura de dados `D` do Lema 3.3, usada só pelo `duan.py` |
-| `dijkstra.py` | o Dijkstra de referência |
-| `comum.py` | infraestrutura comum aos dois algoritmos: constantes, log, heap e contagem |
-| `grafo.py` | representação do grafo e geradores de grafos |
-| `bmssp.py` | CLI que roda os dois algoritmos num grafo, com logs, e confere as distâncias |
-| `dimacs.py`, `benchmark.py`, `graficos.py` | leitura dos grafos DIMACS, protocolo do experimento e figuras |
+```
+src/                      implementação
+├── algoritmos/           os algoritmos comparados
+│   ├── duan.py           DuanSSSP: Algoritmos 1, 2 e 3 de Duan et al.
+│   ├── estrutura_d.py    estrutura de dados D do Lema 3.3 (usada só pelo duan.py)
+│   ├── dijkstra.py       Dijkstra de referência
+│   └── comum.py          infraestrutura comum aos dois: constantes, log, heap e contagem
+├── grafos/               representação e leitura de grafos
+│   ├── grafo.py          Graph e geradores de grafos
+│   └── dimacs.py         leitura e validação dos arquivos DIMACS
+├── bmssp.py              CLI: roda os dois algoritmos num grafo, com logs, e confere as distâncias
+├── benchmark.py          protocolo do experimento (gera os CSVs)
+└── graficos.py           figuras a partir dos CSVs
+datasets/                 grafos DIMACS (baixados, fora do git; ver datasets/README.md)
+resultados/
+├── csv/                  dados coletados por etapa
+├── logs/                 saída legível das execuções do benchmark
+└── figuras/              figuras por etapa, em PNG e PDF
+relatorio/                seção de implementação em LaTeX
+```
+
+Cada algoritmo fica no seu arquivo (`duan.py` e `dijkstra.py`); o que os dois precisam compartilhar,
+para serem trocados e contados do mesmo jeito, fica em `comum.py`. Todos os comandos abaixo são
+rodados a partir da raiz do repositório.
 
 ### `duan.py` e `estrutura_d.py`: o algoritmo
 
 | Símbolo | Linha | Papel |
 |---|---|---|
-| `DuanSSSP` | `duan.py:48` | O solver. Guarda `d` (distância provisória), `h` (nº de arestas, desempate) e `pred`. Cada um dos três algoritmos monta a chave da ordem total `(d, h, v)` e faz a relaxação com `≤` da Observação 3.4 no próprio corpo, sem métodos auxiliares. |
-| `DuanSSSP.find_pivots` | `duan.py:126` | Algoritmo 1. |
-| `DuanSSSP.base_case` | `duan.py:213` | Algoritmo 2, com heap binário (`usar_heap`) e remoção preguiçosa. |
-| `DuanSSSP.bmssp` | `duan.py:295` | Algoritmo 3. Registra por nível (`self.niveis`) o número de chamadas, as parciais, `|S|` e `|U|` máximos e as cotas do Lema 3.9. |
-| `DuanSSSP.run` | `duan.py:412` | Chama `bmssp(l, ∞, {s})`, consolida as contagens no modelo comparação-adição (tabela abaixo) e devolve o vetor de distâncias. |
-| `_Block`, `_bisect_contado`, `_particiona`, `_selecao`, `BlockDS` | `estrutura_d.py:23, 33, 49, 61, 97` | A estrutura `D` do Lema 3.3. `D0` é um `deque` de blocos recebidos por `BatchPrepend`; `D1` é uma lista de blocos com cotas superiores (`uppers`), localizados por `bisect`. `where` mapeia chave → bloco para remoção em `O(1)`. Os `k` menores (divisão de bloco pela mediana, `Pull`, `BatchPrepend`) são escolhidos por `_selecao`, um quickselect com pivô aleatório: `O(L)` comparações esperadas, uma por elemento em cada partição (`_particiona`). O artigo cita a seleção determinística de [BFP+73] para o mesmo passo; só a garantia muda, de pior caso para esperada. Com `contar=True` conta cada comparação executada (`_bisect_contado`, `_particiona`). |
+| `DuanSSSP` | `src/algoritmos/duan.py:48` | O solver. Guarda `d` (distância provisória), `h` (nº de arestas, desempate) e `pred`. Cada um dos três algoritmos monta a chave da ordem total `(d, h, v)` e faz a relaxação com `≤` da Observação 3.4 no próprio corpo, sem métodos auxiliares. |
+| `DuanSSSP.find_pivots` | `src/algoritmos/duan.py:126` | Algoritmo 1. |
+| `DuanSSSP.base_case` | `src/algoritmos/duan.py:213` | Algoritmo 2, com heap binário (`usar_heap`) e remoção preguiçosa. |
+| `DuanSSSP.bmssp` | `src/algoritmos/duan.py:295` | Algoritmo 3. Registra por nível (`self.niveis`) o número de chamadas, as parciais, `|S|` e `|U|` máximos e as cotas do Lema 3.9. |
+| `DuanSSSP.run` | `src/algoritmos/duan.py:412` | Chama `bmssp(l, ∞, {s})`, consolida as contagens no modelo comparação-adição (tabela abaixo) e devolve o vetor de distâncias. |
+| `_Block`, `_bisect_contado`, `_particiona`, `_selecao`, `BlockDS` | `src/algoritmos/estrutura_d.py:23, 33, 49, 61, 97` | A estrutura `D` do Lema 3.3. `D0` é um `deque` de blocos recebidos por `BatchPrepend`; `D1` é uma lista de blocos com cotas superiores (`uppers`), localizados por `bisect`. `where` mapeia chave → bloco para remoção em `O(1)`. Os `k` menores (divisão de bloco pela mediana, `Pull`, `BatchPrepend`) são escolhidos por `_selecao`, um quickselect com pivô aleatório: `O(L)` comparações esperadas, uma por elemento em cada partição (`_particiona`). O artigo cita a seleção determinística de [BFP+73] para o mesmo passo; só a garantia muda, de pior caso para esperada. Com `contar=True` conta cada comparação executada (`_bisect_contado`, `_particiona`). |
 
 ### `dijkstra.py`: a referência
 
 | Símbolo | Linha | Papel |
 |---|---|---|
-| `dijkstra` | `dijkstra.py:13` | Dijkstra com heap binário (`usar_heap`) e remoção preguiçosa, contado com as mesmas regras do `DuanSSSP`. |
+| `dijkstra` | `src/algoritmos/dijkstra.py:13` | Dijkstra com heap binário (`usar_heap`) e remoção preguiçosa, contado com as mesmas regras do `DuanSSSP`. |
 
 ### `comum.py`, `grafo.py` e `bmssp.py`: infraestrutura e CLI
 
 | Símbolo | Linha | Papel |
 |---|---|---|
-| `usar_heap` | `comum.py:26` | Escolhe o heap dos dois algoritmos: `"c"` é o `heapq` acelerado (padrão); `"python"` carrega o mesmo `heapq.py` da biblioteca padrão sem o módulo `_heapq`, para medir a parcela do interpretador. |
-| `Chave` | `comum.py:51` | Chave da execução de contagem: cada `<` executado incrementa `Chave.n`. É o que torna exata a contagem do heap e da estrutura `D`. |
-| `heap_ops` | `comum.py:69` | Devolve o par `(push, pop)` usado pelo `base_case` e pelo `dijkstra`: o heap escolhido em `usar_heap` e, com `contar=True`, com os itens embrulhados em `Chave`. |
-| `Graph` | `grafo.py:8` | Grafo dirigido. `adj[u]` é uma tupla intercalada `(v0, w0, v1, w1, ...)` com objetos `int` compartilhados: 16 bytes por arco em vez de ~160 de uma lista de tuplas. É o que permite carregar o grafo USA (58 M arcos) em ~3 GB. `add_edge` acumula; `arcs(u)` itera em pares. |
-| `to_constant_degree` | `grafo.py:41` | Transformação da Seção 2 do artigo: cada vértice vira um ciclo de peso 0 com um nó por aresta incidente, de modo que todo grau fique ≤ 2. Usada só para validar que o algoritmo se comporta igual com e sem a hipótese de grau constante. |
-| `random_graph` | `grafo.py:95` | Grafos aleatórios: árvore geradora com arcos nos dois sentidos (todo vértice alcança todos) mais arcos aleatórios até `m`. |
-| `main` | `bmssp.py:24` | CLI com logs por nível de recursão, útil para acompanhar a execução em grafos pequenos. |
+| `usar_heap` | `src/algoritmos/comum.py:26` | Escolhe o heap dos dois algoritmos: `"c"` é o `heapq` acelerado (padrão); `"python"` carrega o mesmo `heapq.py` da biblioteca padrão sem o módulo `_heapq`, para medir a parcela do interpretador. |
+| `Chave` | `src/algoritmos/comum.py:51` | Chave da execução de contagem: cada `<` executado incrementa `Chave.n`. É o que torna exata a contagem do heap e da estrutura `D`. |
+| `heap_ops` | `src/algoritmos/comum.py:69` | Devolve o par `(push, pop)` usado pelo `base_case` e pelo `dijkstra`: o heap escolhido em `usar_heap` e, com `contar=True`, com os itens embrulhados em `Chave`. |
+| `Graph` | `src/grafos/grafo.py:8` | Grafo dirigido. `adj[u]` é uma tupla intercalada `(v0, w0, v1, w1, ...)` com objetos `int` compartilhados: 16 bytes por arco em vez de ~160 de uma lista de tuplas. É o que permite carregar o grafo USA (58 M arcos) em ~3 GB. `add_edge` acumula; `arcs(u)` itera em pares. |
+| `to_constant_degree` | `src/grafos/grafo.py:41` | Transformação da Seção 2 do artigo: cada vértice vira um ciclo de peso 0 com um nó por aresta incidente, de modo que todo grau fique ≤ 2. Usada só para validar que o algoritmo se comporta igual com e sem a hipótese de grau constante. |
+| `random_graph` | `src/grafos/grafo.py:95` | Grafos aleatórios: árvore geradora com arcos nos dois sentidos (todo vértice alcança todos) mais arcos aleatórios até `m`. |
+| `main` | `src/bmssp.py:24` | CLI com logs por nível de recursão, útil para acompanhar a execução em grafos pequenos. |
 
 **O que é contado como comparação.** Tudo é contado por eventos, exatamente. O que depende da
 implementação interna do heap e da estrutura `D` é contado numa execução separada, em que as chaves
@@ -140,7 +154,7 @@ O Dijkstra é contado com as mesmas regras (`arestas_examinadas + pops + compara
 arcos em `array`, ordenação por origem por contagem, e montagem das tuplas intercaladas. Nunca cria
 listas por vértice, por isso o pico de memória fica em ~1,6× o tamanho final.
 `random_sources(n, quantidade, seed)` sorteia as fontes do benchmark de forma reprodutível.
-`python3 dimacs.py --check arquivo.gr.gz` confere a contagem de arcos, pesos negativos, laços,
+`python3 src/grafos/dimacs.py --check arquivo.gr.gz` confere a contagem de arcos, pesos negativos, laços,
 grau máximo e vértices isolados.
 
 ### `benchmark.py`: o protocolo
@@ -168,9 +182,9 @@ U_cota, U_medio}`.
 
 ### `graficos.py`: as figuras
 
-Lê os CSVs e escreve as figuras em PNG e PDF, separadas por etapa: `figuras/etapa1` (fig1, fig2,
-fig6, fig8), `figuras/etapa2` (fig3, fig4, fig5 e a subpasta `previsao`, com as extrapolações),
-`figuras/etapa3` (fig7) e `figuras/complemento` (fig9, heap em Python). Cada função `fig_*` gera uma
+Lê os CSVs e escreve as figuras em PNG e PDF, separadas por etapa: `resultados/figuras/etapa1` (fig1, fig2,
+fig6, fig8), `resultados/figuras/etapa2` (fig3, fig4, fig5 e a subpasta `previsao`, com as extrapolações),
+`resultados/figuras/etapa3` (fig7) e `resultados/figuras/complemento` (fig9, heap em Python). Cada função `fig_*` gera uma
 figura. As figuras 1 a 8 usam as linhas com `heap=c`.
 
 ---
@@ -189,16 +203,8 @@ conexos na prática (toda fonte sorteada alcançou todos os vértices).
 | USA-road-d.E.gr.gz | 3.598.623 | 8.778.114 | 52 MB |
 | USA-road-d.USA.gr.gz | 23.947.347 | 58.333.344 | 351 MB |
 
-Os arquivos não estão no repositório. Baixe para uma pasta `data/` ao lado dele:
-
-```bash
-mkdir -p ../data && cd ../data
-for g in NY COL CAL E USA; do
-  curl -fLO https://www.diag.uniroma1.it/challenge9/data/USA-road-d/USA-road-d.$g.gr.gz
-done
-gzip -t *.gz
-python3 ../SortingBarrier-vs-Djikstra/dimacs.py --check USA-road-d.NY.gr.gz
-```
+Os arquivos não estão no repositório: baixe-os para a pasta `datasets/` seguindo
+[`datasets/README.md`](datasets/README.md).
 
 O servidor às vezes encerra conexões longas; se `gzip -t` falhar, baixe o arquivo de novo do zero
 (retomar com `curl -C -` produziu um arquivo corrompido durante este trabalho).
@@ -213,32 +219,32 @@ cada `a u v w` é um arco dirigido `u → v` de peso `w`, com vértices de 1 a `
 Requisitos: Python 3.12 (sem dependências para os algoritmos). Para as figuras:
 
 ```bash
-python3 -m venv ../.venv && ../.venv/bin/pip install matplotlib
+python3 -m venv .venv && .venv/bin/pip install matplotlib
 ```
 
 Acompanhar o algoritmo em um grafo pequeno, com log de cada chamada recursiva:
 
 ```bash
-python3 bmssp.py --exemplo
-python3 bmssp.py -n 50 --seed 3 --log DEBUG
-python3 bmssp.py -n 3000 --seed 7 --grau-constante --log WARNING
+python3 src/bmssp.py --exemplo
+python3 src/bmssp.py -n 50 --seed 3 --log DEBUG
+python3 src/bmssp.py -n 3000 --seed 7 --grau-constante --log WARNING
 ```
 
 Rodar as três etapas do experimento (tempos aproximados nesta máquina):
 
 ```bash
 # Etapa 1: grafos reais, parâmetros do artigo, heap em C e em Python (~45 min para NY, COL, CAL, E; ~1 h para o USA)
-python3 benchmark.py ../data/USA-road-d.{NY,COL,CAL,E}.gr.gz --fontes 10 --heap both --saida resultados.csv
-python3 benchmark.py ../data/USA-road-d.USA.gr.gz --fontes 3 --heap both --saida resultados_usa.csv
+python3 src/benchmark.py datasets/USA-road-d.{NY,COL,CAL,E}.gr.gz --fontes 10 --heap both --saida resultados/csv/resultados.csv
+python3 src/benchmark.py datasets/USA-road-d.USA.gr.gz --fontes 3 --heap both --saida resultados/csv/resultados_usa.csv
 
 # Etapa 2: escada sintética (~2,5 h; só até 2^21 são ~30 min)
-python3 benchmark.py --sintetico 15 16 17 18 19 20 21 22 23 24 --fontes 3 --heap both --saida resultados_sintetico.csv
+python3 src/benchmark.py --sintetico 15 16 17 18 19 20 21 22 23 24 --fontes 3 --heap both --saida resultados/csv/resultados_sintetico.csv
 
 # Etapa 3: controle com k e t fixos, só tempo (~15 min)
-python3 benchmark.py ../data/USA-road-d.{NY,COL,CAL,E}.gr.gz --fontes 3 -k 2 -t 6 --sem-contagem --saida resultados_kt_fixo.csv
+python3 src/benchmark.py datasets/USA-road-d.{NY,COL,CAL,E}.gr.gz --fontes 3 -k 2 -t 6 --sem-contagem --saida resultados/csv/resultados_kt_fixo.csv
 
 # Figuras
-../.venv/bin/python graficos.py
+.venv/bin/python src/graficos.py
 ```
 
 Memória: o USA usa ~3,2 GB para o grafo e o benchmark completo chega a 12,5 GB de pico (dois
@@ -325,9 +331,9 @@ estradas e todo o excesso do BMSSP está nos exames repetidos. As constantes nor
 estáveis em todos os tamanhos: `comparações / (m·log^(2/3) n)` entre 1,65 e 1,91 para o BMSSP e
 `comparações / (m·log n)` entre 0,29 e 0,33 para o Dijkstra.
 
-![Comparações por aresta e exames de aresta](figuras/etapa1/fig2_comparacoes_reais.png)
+![Comparações por aresta e exames de aresta](resultados/figuras/etapa1/fig2_comparacoes_reais.png)
 
-Outras figuras desta etapa em `figuras/etapa1/`: `fig1_tempo_reais` (tempo por grafo) e `fig8_dispersao_fontes` (dispersão entre fontes).
+Outras figuras desta etapa em `resultados/figuras/etapa1/`: `fig1_tempo_reais` (tempo por grafo) e `fig8_dispersao_fontes` (dispersão entre fontes).
 
 ### Etapa 2
 
@@ -357,12 +363,12 @@ razão cai de 1,71 para 1,02 em `2^23` e para 0,985 em `2^24`, abaixo de 1 nas t
 (0,992, 0,985, 0,985): **a partir de n ≈ 1,7 × 10^7 vértices o BMSSP faz menos comparações que o
 Dijkstra**, que é o que o artigo prevê. A razão de tempo cai de 6,3 para 1,7 e não cruza.
 
-![Comparações por aresta em função de log n e razão de comparações](figuras/etapa2/fig3_escada_comparacoes.png)
+![Comparações por aresta em função de log n e razão de comparações](resultados/figuras/etapa2/fig3_escada_comparacoes.png)
 
 As constantes normalizadas contam a mesma história: `comparações / (m·log^(2/3) n)` do BMSSP cai de
 1,98 para 1,25, ou seja, na nossa faixa ele cresce mais devagar que a própria cota, enquanto
-`comparações / (m·log n)` do Dijkstra fica plana em 0,44 a 0,47 (`figuras/etapa2/fig5_constantes`).
-Tempo absoluto e razão de tempo: `figuras/etapa2/fig4_escada_tempo`.
+`comparações / (m·log n)` do Dijkstra fica plana em 0,44 a 0,47 (`resultados/figuras/etapa2/fig5_constantes`).
+Tempo absoluto e razão de tempo: `resultados/figuras/etapa2/fig4_escada_tempo`.
 
 **Por que tão tarde.** Com as fórmulas do artigo, `k = 2` para qualquer grafo que caiba numa máquina
 (`k = 3` só a partir de `2^27` vértices) e `t` anda uma unidade a cada poucas duplicações de `n`. Os
@@ -390,7 +396,7 @@ com `n`: em `2^24` o Dijkstra fica só 21% mais lento com o heap em Python, porq
 a ser dominado por acessos aleatórios à memória e não pelo heap. O cruzamento em tempo não acontece
 até `2^24` com nenhum dos dois heaps.
 
-![Razão de tempo com os dois heaps](figuras/complemento/fig9_heap_python.png)
+![Razão de tempo com os dois heaps](resultados/figuras/complemento/fig9_heap_python.png)
 
 ### Etapa 3
 
@@ -403,17 +409,17 @@ até `2^24` com nenhum dos dois heaps.
 
 Fixar `t` tira 1,8 ponto da razão do COL e move os outros em menos de 0,3; o COL continua três
 pontos acima deles com parâmetros iguais. Um terço do desvio é parâmetro, dois terços é estrutura
-do grafo. O BMSSP é sensível ao grafo de um modo que o Dijkstra não é. Figura: `figuras/etapa3/fig7_kt_fixo`.
+do grafo. O BMSSP é sensível ao grafo de um modo que o Dijkstra não é. Figura: `resultados/figuras/etapa3/fig7_kt_fixo`.
 
 ### Cotas do Lema 3.9
 
 O lema garante `|U| ≤ 4k·2^(lt)` e `|S| ≤ 2^(lt)` em toda chamada de nível `l`. Em todos os grafos
 e níveis, `|U|` ficou abaixo de 33% da cota (pior caso 0,327) e `|S|` no máximo igual à cota
-(igualdade só nos níveis 0 e 1, onde ela vale 1 e `2^t`). Figura: `figuras/etapa1/fig6_niveis_lema39`.
+(igualdade só nos níveis 0 e 1, onde ela vale 1 e `2^t`). Figura: `resultados/figuras/etapa1/fig6_niveis_lema39`.
 
 ### Previsões (curiosidade)
 
-Prolongando os ajustes da escada (`figuras/etapa2/previsao/`): as retas de comparações por aresta,
+Prolongando os ajustes da escada (`resultados/figuras/etapa2/previsao/`): as retas de comparações por aresta,
 lineares em `log₂ n`, se encontram em `n ≈ 2^24` (±3 no expoente), que é onde a medição cruzou. As
 leis de potência do tempo, `n^1,12` para o BMSSP e `n^1,30` para o Dijkstra (`n^1,23` com heap em
 Python), se encontrariam em `n ≈ 2^28` com o heap em C, com umas 3 h por fonte e memória de
@@ -446,13 +452,15 @@ sem bibliotecas de aceleração. Tudo single-thread. Os tempos são por fonte, m
 
 | Arquivo | Conteúdo |
 |---|---|
-| `duan.py`, `estrutura_d.py`, `dijkstra.py`, `comum.py`, `grafo.py`, `bmssp.py`, `dimacs.py`, `benchmark.py`, `graficos.py` | código (ver seção 2) |
-| `resultados.csv` | etapa 1, NY/COL/CAL/E, 80 linhas (40 fontes × 2 heaps) |
-| `resultados_usa.csv` | etapa 1, USA, 6 linhas |
-| `resultados_sintetico.csv` | etapa 2, 2^15 a 2^24, 60 linhas |
-| `resultados_kt_fixo.csv` | etapa 3, 12 linhas (sem contagem de comparações) |
-| `benchmark_estradas.log`, `benchmark_usa.log`, `benchmark_sintetico.log`, `benchmark_kt_fixo.log` | saída legível das execuções |
-| `figuras/etapa1`, `figuras/etapa2`, `figuras/etapa3`, `figuras/complemento` | fig1 a fig9 e as previsões, em PNG e PDF, separadas por etapa |
+| `src/` | código (ver seção 2) |
+| `datasets/` | instruções para baixar os grafos DIMACS |
+| `relatorio/` | seção de implementação em LaTeX (`implementation_details.tex`) e referências |
+| `resultados/csv/resultados.csv` | etapa 1, NY/COL/CAL/E, 80 linhas (40 fontes × 2 heaps) |
+| `resultados/csv/resultados_usa.csv` | etapa 1, USA, 6 linhas |
+| `resultados/csv/resultados_sintetico.csv` | etapa 2, 2^15 a 2^24, 60 linhas |
+| `resultados/csv/resultados_kt_fixo.csv` | etapa 3, 12 linhas (sem contagem de comparações) |
+| `resultados/logs/` (`benchmark_estradas.log`, `benchmark_usa.log`, `benchmark_sintetico.log`, `benchmark_kt_fixo.log`) | saída legível das execuções |
+| `resultados/figuras/etapa1`, `resultados/figuras/etapa2`, `resultados/figuras/etapa3`, `resultados/figuras/complemento` | fig1 a fig9 e as previsões, em PNG e PDF, separadas por etapa |
 
 Referência: R. Duan, J. Mao, X. Mao, X. Shu, L. Yin. *Breaking the Sorting Barrier for Directed
 Single-Source Shortest Paths.* arXiv:2504.17033v2, 2025.

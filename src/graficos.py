@@ -2,7 +2,7 @@
 """Gera as figuras do relatório a partir dos CSVs do benchmark.
 
 Uso:
-    ../.venv/bin/python graficos.py            # lê resultados*.csv, escreve figuras/<etapa>/*.png e *.pdf
+    .venv/bin/python src/graficos.py   # lê resultados/csv/*.csv, escreve resultados/figuras/<etapa>/*.png e *.pdf
 
 Pastas: etapa1 (grafos reais), etapa2 (escada sintética, com a subpasta previsao), etapa3
 (k, t fixos) e complemento (heap em Python). As figuras 1 a 8 usam as linhas com heap="c".
@@ -18,7 +18,9 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
 
-SAIDA = "figuras"
+RAIZ = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+CSV = os.path.join(RAIZ, "resultados", "csv")
+SAIDA = os.path.join(RAIZ, "resultados", "figuras")
 COR = {"bmssp": "#1f77b4", "dijkstra": "#d62728"}
 ROTULO = {"bmssp": "BMSSP (Duan et al.)", "dijkstra": "Dijkstra"}
 plt.rcParams.update({"font.size": 10, "axes.grid": True, "grid.alpha": 0.3, "figure.dpi": 100})
@@ -367,11 +369,11 @@ def fig_previsao(sint, sint_py):
 
 def main():
     os.makedirs(SAIDA, exist_ok=True)
-    todos = le("resultados.csv")
-    if os.path.exists("resultados_usa.csv"):
-        todos += le("resultados_usa.csv")
-    todos_sint = le("resultados_sintetico.csv")
-    fixo = le("resultados_kt_fixo.csv")
+    todos = le(os.path.join(CSV, "resultados.csv"))
+    if os.path.exists(os.path.join(CSV, "resultados_usa.csv")):
+        todos += le(os.path.join(CSV, "resultados_usa.csv"))
+    todos_sint = le(os.path.join(CSV, "resultados_sintetico.csv"))
+    fixo = le(os.path.join(CSV, "resultados_kt_fixo.csv"))
     heap = lambda rows, h: [r for r in rows if r.get("heap", "c") == h]
     reais, sint = heap(todos, "c"), heap(todos_sint, "c")
     print(f"figuras em {SAIDA}/")

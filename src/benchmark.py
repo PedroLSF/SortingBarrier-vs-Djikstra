@@ -11,10 +11,10 @@ As distâncias são conferidas a cada par; a carga do grafo fica fora da mediç�
 e o garbage collector fica desligado durante cada execução cronometrada.
 
 Uso:
-    python3 benchmark.py ../data/USA-road-d.NY.gr.gz ../data/USA-road-d.COL.gr.gz --fontes 10
-    python3 benchmark.py --sintetico 15 16 17 18 19 20 --grau 3 --fontes 3 --saida sintetico.csv
-    python3 benchmark.py ../data/USA-road-d.NY.gr.gz -k 2 -t 6      # k e t fixos
-    python3 benchmark.py ../data/USA-road-d.NY.gr.gz --heap both    # heapq em C e heapq.py puro
+    python3 src/benchmark.py datasets/USA-road-d.NY.gr.gz datasets/USA-road-d.COL.gr.gz --fontes 10
+    python3 src/benchmark.py --sintetico 15 16 17 18 19 20 --grau 3 --fontes 3 --saida resultados/csv/sintetico.csv
+    python3 src/benchmark.py datasets/USA-road-d.NY.gr.gz -k 2 -t 6      # k e t fixos
+    python3 src/benchmark.py datasets/USA-road-d.NY.gr.gz --heap both    # heapq em C e heapq.py puro
 """
 
 import argparse
@@ -27,12 +27,13 @@ import statistics
 import sys
 import time
 
-from comum import usar_heap
-from dijkstra import dijkstra
-from dimacs import load_gr, random_sources
-from duan import DuanSSSP
-from grafo import Graph, random_graph
+from algoritmos.comum import usar_heap
+from algoritmos.dijkstra import dijkstra
+from algoritmos.duan import DuanSSSP
+from grafos.dimacs import load_gr, random_sources
+from grafos.grafo import Graph, random_graph
 
+RAIZ = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 MAX_NIVEL = 6
 CAMPOS_NIVEL = ("chamadas", "parciais", "iteracoes", "S_max", "S_cota", "U_max", "U_cota", "U_medio")
 
@@ -106,7 +107,8 @@ def main():
                     help="heapq em C (padrão), heapq.py puro ou os dois, no Dijkstra e no BaseCase")
     ap.add_argument("--sem-aquecimento", action="store_true")
     ap.add_argument("--sem-contagem", action="store_true", help="pula a execução de contagem")
-    ap.add_argument("--saida", default="resultados.csv")
+    ap.add_argument("--saida", default=os.path.join(RAIZ, "resultados", "csv", "resultados.csv"),
+                    help="CSV de saída (padrão: resultados/csv/resultados.csv)")
     a = ap.parse_args()
     if not a.grafos and not a.sintetico:
         ap.error("informe arquivos DIMACS e/ou --sintetico")
