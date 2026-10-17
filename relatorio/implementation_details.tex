@@ -1,0 +1,228 @@
+% ---------------------------------------------------------------------------
+% Implementation of Algorithms 1, 2 and 3 of Duan et al. (2025).
+% Content of the existing \subsection{Implementation details}: put
+% \input{implementation_details} right below that heading.
+% Preamble packages required:
+%   \usepackage{amsmath}
+%   \usepackage{listings}
+%   \usepackage{xcolor}
+% Citation key used: duan2025 (entry in implementation_details.bib).
+% ---------------------------------------------------------------------------
+
+\lstdefinestyle{pycode}{
+  language=Python,
+  basicstyle=\ttfamily\footnotesize,
+  keywordstyle=\bfseries\color{blue!60!black},
+  commentstyle=\itshape\color{green!40!black},
+  stringstyle=\color{red!60!black},
+  numbers=left, numberstyle=\tiny\color{gray}, numbersep=6pt,
+  frame=single, breaklines=true, showstringspaces=false,
+  columns=fullflexible, keepspaces=true, tabsize=4
+}
+
+The three algorithms of Duan et al.~\cite{duan2025} are implemented in Python as methods of
+the class \texttt{DuanSSSP}, in the file \texttt{duan.py}: \texttt{find\_pivots}
+(Algorithm~1), \texttt{base\_case} (Algorithm~2) and \texttt{bmssp} (Algorithm~3). The
+listings below are the code of these methods. Only the lines that write logs and update the
+operation counters of the experiment were removed, since they do not change the result. We
+checked that this version returns the same distances and predecessors as the full one.
+
+\paragraph{Shared state.} The methods work on four lists indexed by vertex:
+\texttt{d[v]} holds the estimate $\hat{d}[v]$, \texttt{h[v]} the number of arcs of the
+current path to $v$, \texttt{pred[v]} the predecessor $\mathrm{Pred}[v]$, and
+\texttt{pred\_w[v]} the weight of the arc $(\mathrm{Pred}[v], v)$. Adjacency lists are flat
+tuples $(v_0, w_0, v_1, w_1, \dots)$, read in pairs with \texttt{zip(adj\_u, adj\_u)}. The
+parameter \texttt{depth} is only used to indent the logs.
+
+\paragraph{Total order (Assumption 2.1).} The paper assumes that all paths have distinct
+lengths. We represent the value of $\hat{d}[v]$ by the tuple $(\hat{d}[v], h[v], v)$, which
+Python compares lexicographically, so every bound $B$, $B_i$ and $B'_i$ is a tuple of this
+form ($B=\infty$ is $(\infty,\infty,\infty)$). The relaxation test of Remark~3.4,
+$\hat{d}[u]+w_{uv}\le\hat{d}[v]$, becomes
+\begin{equation*}
+  \bigl(\hat{d}[u]+w,\; h[u]+1,\; u\bigr) \;\le\; \bigl(\hat{d}[v],\; h[v],\; \mathrm{Pred}[v]\bigr),
+\end{equation*}
+because the two paths compared end at $v$ and the first possible difference after the
+length and the number of arcs is the predecessor. The ``$\le$'' lets an arc that is already
+tight be relaxed again, as the paper requires. This test is written directly inside each of
+the three methods.
+
+\subsubsection{Algorithm 1: FindPivots}
+
+\texttt{find\_pivots(B, S)} (Listing~\ref{lst:findpivots}) decides which vertices of $S$
+need to be passed on to the recursion.
+\begin{enumerate}
+  \item It runs $k$ rounds of Bellman--Ford starting from $S$. In each round only the
+        vertices reached in the previous round (\texttt{prev}) are expanded, and a vertex
+        enters $W_i$ only if its new value is below $B$.
+  \item If $|W|$ exceeds $k|S|$, it stops and returns $P=S$: the frontier is too large to
+        be reduced.
+  \item Otherwise it builds the forest $F$ of tight arcs inside $W$. Under the total order
+        a vertex has at most one tight incoming arc, the one from $\mathrm{Pred}[v]$, so
+        $F$ is read from \texttt{pred} in $O(|W|)$ time. The two equalities check that the
+        arc is still tight, because $\mathrm{Pred}[v]$ may be outdated if $u$ was improved
+        later.
+  \item The pivots are the roots in $S$ whose tree in $F$ has at least $k$ vertices. Tree
+        sizes are computed with an explicit-stack DFS.
+\end{enumerate}
+
+\begin{lstlisting}[style=pycode, caption={Algorithm 1, FindPivots (\texttt{duan.py}).}, label={lst:findpivots}]
+def find_pivots(self, B, S, depth):
+    k, adj = self.k, self.g.adj
+    d, h, pred, pred_w = self.d, self.h, self.pred, self.pred_w
+    W = set(S)
+    prev = set(S)
+    for i in range(1, k + 1):
+        Wi = set()
+        for u in prev:
+            adj_u = iter(adj[u])
+            for v, w in zip(adj_u, adj_u):
+                du, hu = d[u] + w, h[u] + 1
+                if (du, hu, u) <= (d[v], h[v], pred[v]):
+                    d[v], h[v], pred[v], pred_w[v] = du, hu, u, w
+                    if (du, hu, v) < B:
+                        Wi.add(v)
+        W |= Wi
+        if len(W) > k * len(S):
+            return set(S), W
+        prev = Wi
+
+    children = {u: [] for u in W}
+    has_parent = set()
+    for v in W:
+        u = pred[v]
+        if u in children and d[v] == d[u] + pred_w[v] and h[v] == h[u] + 1:
+            children[u].append(v)
+            has_parent.add(v)
+
+    P = set()
+    for r in S:
+        if r in has_parent:
+            continue
+        size, stack = 0, [r]
+        while stack:
+            x = stack.pop()
+            size += 1
+            stack.extend(children[x])
+        if size >= k:
+            P.add(r)
+    return P, W
+\end{lstlisting}
+
+\subsubsection{Algorithm 2: BaseCase}
+
+\texttt{base\_case(B, S)} (Listing~\ref{lst:basecase}) is the bottom of the recursion
+($l=0$), where $S=\{x\}$ is a single vertex.
+\begin{enumerate}
+  \item It runs a Dijkstra from $x$ that settles at most $k+1$ vertices and relaxes only
+        paths whose value is below $B$.
+  \item The paper uses a heap with DecreaseKey. We use Python's binary heap
+        (\texttt{heapq}) with lazy deletion: an improved vertex is pushed again, and
+        outdated entries are skipped when popped, by comparing the stored key with the
+        current one. \texttt{heap\_ops} returns the push and pop functions of the heap
+        selected for the run.
+  \item If at most $k$ vertices were settled, the execution is successful and returns
+        $B'=B$ and all of them. Otherwise the largest value among the $k+1$ settled
+        vertices becomes the new bound $B'$, and only the vertices below it are returned.
+\end{enumerate}
+
+\begin{lstlisting}[style=pycode, caption={Algorithm 2, BaseCase (\texttt{duan.py}).}, label={lst:basecase}]
+def base_case(self, B, S, depth):
+    d, h, pred, pred_w = self.d, self.h, self.pred, self.pred_w
+    adj = self.g.adj
+    (x,) = S
+    U0 = {x}
+    push, pop = heap_ops(self.contar)
+    heap = []
+    kx = (d[x], h[x], x)
+    push(heap, (kx, x))
+    in_heap = {x: kx}
+    done = set()
+    while heap and len(U0) < self.k + 1:
+        kv, u = pop(heap)
+        if u in done or kv != (d[u], h[u], u):
+            continue
+        done.add(u)
+        U0.add(u)
+        adj_u = iter(adj[u])
+        for v, w in zip(adj_u, adj_u):
+            du, hu = d[u] + w, h[u] + 1
+            if (du, hu, u) <= (d[v], h[v], pred[v]) and (du, hu, v) < B:
+                d[v], h[v], pred[v], pred_w[v] = du, hu, u, w
+                kv2 = (du, hu, v)
+                old = in_heap.get(v)
+                if old is None or kv2 < old:
+                    in_heap[v] = kv2
+                    push(heap, (kv2, v))
+    if len(U0) <= self.k:
+        return B, U0
+    Bp = max((d[v], h[v], v) for v in U0)
+    U = {v for v in U0 if (d[v], h[v], v) < Bp}
+    return Bp, U
+\end{lstlisting}
+
+\subsubsection{Algorithm 3: BMSSP}
+
+\texttt{bmssp(l, B, S)} (Listing~\ref{lst:bmssp}) is the recursive core. The solver starts
+with \texttt{bmssp(l, (inf, inf, inf), \{s\})} at the top level $l$.
+\begin{enumerate}
+  \item At $l=0$ it delegates to \texttt{base\_case}. Otherwise it calls
+        \texttt{find\_pivots} and inserts the pivots into the block-based structure $D$ of
+        Lemma~3.3 (class \texttt{BlockDS}), with block size $M=2^{(l-1)t}$. $B'_0$ is the
+        smallest value among the pivots.
+  \item While $|U| < k\cdot 2^{lt}$ and $D$ is not empty, it pulls from $D$ the (up to)
+        $M$ smallest keys $S_i$ with a separating bound $B_i$, and recurses with
+        \texttt{bmssp(l-1, B\_i, S\_i)}, which returns $(B'_i, U_i)$.
+  \item It relaxes the arcs leaving $U_i$. A relaxed vertex whose new value lies in
+        $[B_i, B)$ goes back into $D$ with Insert. One in $[B'_i, B_i)$ goes into the list
+        \texttt{K}, together with the vertices of $S_i$ that the recursive call did not
+        complete. \texttt{K} is returned to $D$ with a single BatchPrepend, since all its
+        values are smaller than every value still in $D$.
+  \item At the end, $B'=\min(B'_i, B)$, and $U$ also receives the vertices of $W$ (from
+        FindPivots) whose value is below $B'$. $B'=B$ means a successful execution;
+        $B'<B$ means it stopped early because of a large workload.
+\end{enumerate}
+The paper checks the workload condition inside the loop; here it is part of the
+\texttt{while} condition, which has the same effect.
+
+\begin{lstlisting}[style=pycode, caption={Algorithm 3, BMSSP (\texttt{duan.py}).}, label={lst:bmssp}]
+def bmssp(self, l, B, S, depth=0):
+    d, h, pred, pred_w = self.d, self.h, self.pred, self.pred_w
+    adj = self.g.adj
+    if l == 0:
+        return self.base_case(B, S, depth)
+
+    P, W = self.find_pivots(B, S, depth)
+    M = 2 ** ((l - 1) * self.t)
+    D = BlockDS(M, B, self.fmt, depth, self.contar)
+    for x in P:
+        D.insert(x, (d[x], h[x], x))
+    Bp_last = min(((d[x], h[x], x) for x in P), default=B)
+    U = set()
+    limit = self.k * 2 ** (l * self.t)
+
+    while len(U) < limit and len(D) > 0:
+        Bi, Si = D.pull()
+        Bpi, Ui = self.bmssp(l - 1, Bi, set(Si), depth + 1)
+        U |= Ui
+
+        K = []
+        for u in Ui:
+            adj_u = iter(adj[u])
+            for v, w in zip(adj_u, adj_u):
+                du, hu = d[u] + w, h[u] + 1
+                if (du, hu, u) <= (d[v], h[v], pred[v]):
+                    d[v], h[v], pred[v], pred_w[v] = du, hu, u, w
+                    val = (du, hu, v)
+                    if Bi <= val < B:
+                        D.insert(v, val)
+                    elif Bpi <= val < Bi:
+                        K.append((v, val))
+        K.extend((x, (d[x], h[x], x)) for x in Si if Bpi <= (d[x], h[x], x) < Bi)
+        D.batch_prepend(K)
+        Bp_last = Bpi
+
+    Bp = min(Bp_last, B)
+    U |= {x for x in W if (d[x], h[x], x) < Bp}
+    return Bp, U
+\end{lstlisting}

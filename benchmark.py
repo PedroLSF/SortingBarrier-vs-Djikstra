@@ -27,8 +27,11 @@ import statistics
 import sys
 import time
 
-from bmssp import DuanSSSP, Graph, dijkstra, random_graph, usar_heap
+from comum import usar_heap
+from dijkstra import dijkstra
 from dimacs import load_gr, random_sources
+from duan import DuanSSSP
+from grafo import Graph, random_graph
 
 MAX_NIVEL = 6
 CAMPOS_NIVEL = ("chamadas", "parciais", "iteracoes", "S_max", "S_cota", "U_max", "U_cota", "U_medio")
