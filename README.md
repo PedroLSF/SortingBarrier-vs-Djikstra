@@ -1,4 +1,4 @@
-# SortingBarrier-vs-Djikstra
+# Single-Source Shortest Paths in Directed Graphs: Dijkstra and BMSSP (Breaking the Sorting Barrier)
 
 Python implementation of the algorithm by **Duan, Mao, Mao, Shu and Yin (2025), "Breaking the Sorting
 Barrier for Directed Single-Source Shortest Paths"** ([arXiv:2504.17033](https://arxiv.org/abs/2504.17033)),
