@@ -1,8 +1,4 @@
 #!/usr/bin/env bash
-# Reproduces the whole experiment in one command: stage 1 (road networks, C and Python heaps),
-# stage 2 (synthetic ladder), stage 3 (fixed k, t), the USA graph if present, and the figures.
-#   ./run_all.sh          full run: about 6 h and up to 12.5 GB of RAM; overwrites results/
-#   ./run_all.sh --quick  reduced run (a few minutes) into results/quick/, to check that everything works
 set -euo pipefail
 cd "$(dirname "$0")"
 
@@ -14,10 +10,8 @@ else
 fi
 mkdir -p "$OUT/csv" "$OUT/logs"
 
-# matplotlib is only needed for the figures: use .venv if it exists, otherwise create it
 if [ ! -x .venv/bin/python ]; then python3 -m venv .venv && .venv/bin/pip install -q matplotlib; fi
 
-# keep the machine awake during the long runs (a suspend freezes the benchmark)
 run() {
   if command -v systemd-inhibit >/dev/null 2>&1; then
     systemd-inhibit --what=sleep:idle --who=run_all.sh --why="benchmark running" "$@"
