@@ -223,6 +223,17 @@ each `a u v w` is a directed arc `u → v` of weight `w`, with vertices from 1 t
 
 ## 4. How to run
 
+### Everything in one command
+
+```bash
+./run_all.sh --quick   # a few minutes: NY with 2 sources, ladder 2^15 to 2^18 and the figures, into results/quick/
+./run_all.sh           # the whole experiment of the report: about 6 h, up to 12.5 GB of RAM, overwrites results/
+```
+
+The script runs the three stages with both heaps, includes the USA graph when `datasets/USA-road-d.USA.gr.gz`
+is present, keeps the machine awake with `systemd-inhibit` and creates `.venv` with matplotlib if needed.
+The sections below describe each step separately.
+
 Requirements: Python 3.12 (no dependencies for the algorithms). For the figures:
 
 ```bash

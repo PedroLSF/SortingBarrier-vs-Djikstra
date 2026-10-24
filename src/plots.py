@@ -243,7 +243,8 @@ def fig_constants(synth, real):
 def fig_levels(real):
     """Figure 6: maximum |U| and |S| per recursion level as a fraction of the Lemma 3.9 bounds."""
     g = groups(real)
-    fig, axes = plt.subplots(1, len(g), figsize=(2.6 * len(g) + 0.6, 3.4), sharey=True)
+    fig, axes = plt.subplots(1, len(g), figsize=(2.6 * len(g) + 0.6, 3.4), sharey=True, squeeze=False)
+    axes = axes[0]
     for ax, (name, rows) in zip(axes, g):
         top = rows[0]["top_level"]
         levels = list(range(top + 1))
@@ -394,12 +395,13 @@ def fig_prediction(synth, synth_py):
 
 def main():
     """Read the CSVs in results/csv/ and generate every figure; figures 1 to 8 use heap="c" only."""
-    global OUT, FLAT
+    global OUT, FLAT, CSV
     ap = argparse.ArgumentParser(description="benchmark figures")
     ap.add_argument("--flat", action="store_true", help="every figure in one folder, no per-stage subfolders")
+    ap.add_argument("--csv", default=CSV, help="folder with the benchmark CSVs")
     ap.add_argument("--output", default=OUT, help="output folder")
     a = ap.parse_args()
-    OUT, FLAT = a.output, a.flat
+    OUT, FLAT, CSV = a.output, a.flat, a.csv
     os.makedirs(OUT, exist_ok=True)
     everything = read(os.path.join(CSV, "results.csv"))
     if os.path.exists(os.path.join(CSV, "results_usa.csv")):
