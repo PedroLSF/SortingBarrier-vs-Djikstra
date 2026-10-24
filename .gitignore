@@ -3,6 +3,5 @@ __pycache__/
 *.pyc
 .venv/
 
-# DIMACS graphs (downloaded into datasets/, see datasets/README.md)
-datasets/*.gr
-datasets/*.gr.gz
+# The USA graph (351 MB) exceeds GitHub's 100 MB file limit: download it, see datasets/README.md
+datasets/USA-road-d.USA.gr.gz

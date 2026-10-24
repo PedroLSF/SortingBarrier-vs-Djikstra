@@ -1,15 +1,15 @@
 # Datasets
 
 US road networks from the 9th DIMACS Implementation Challenge, series `USA-road-d` (weights =
-distance). The files do not go into git (see `.gitignore`); download them into this folder:
+distance), used in stages 1 and 3. NY, COL, CAL and E are versioned in this folder (88 MB in
+total). The USA graph (351 MB) exceeds GitHub's limit of 100 MB per file, so it is ignored by git
+(see `.gitignore`) and must be downloaded into this folder:
 
 ```bash
 cd datasets
-for g in NY COL CAL E USA; do
-  curl -fLO https://www.diag.uniroma1.it/challenge9/data/USA-road-d/USA-road-d.$g.gr.gz
-done
+curl -fLO https://www.diag.uniroma1.it/challenge9/data/USA-road-d/USA-road-d.USA.gr.gz
 gzip -t *.gz
-python3 ../src/graphs/dimacs.py --check USA-road-d.NY.gr.gz
+python3 ../src/graphs/dimacs.py --check USA-road-d.USA.gr.gz
 ```
 
 | File | Vertices | Arcs | .gz |
@@ -23,5 +23,5 @@ python3 ../src/graphs/dimacs.py --check USA-road-d.NY.gr.gz
 The synthetic graphs of stage 2 are not stored on disk: `src/benchmark.py --synthetic` generates them in
 memory with a fixed seed (`src/graphs/graph.py`, `random_graph`).
 
-`test/example.gr` is the only graph versioned in git: the 11-vertex example graph in DIMACS format, a
+`test/example.gr` is the 11-vertex example graph in DIMACS format, a
 small instance for quickly testing the experimental routine (see "How to run" in the main README).

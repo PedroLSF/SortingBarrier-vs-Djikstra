@@ -92,7 +92,7 @@ src/                      implementation
 ├── bmssp.py              CLI: runs both algorithms on a graph, with logs, and checks the distances
 ├── benchmark.py          experiment protocol (generates the CSVs)
 └── plots.py              figures from the CSVs
-datasets/                 DIMACS graphs (downloaded, not in git; see datasets/README.md) and the test/ instance
+datasets/                 DIMACS graphs (NY, COL, CAL, E in git; USA downloaded, see datasets/README.md) and the test/ instance
 results/
 ├── csv/                  collected data per stage
 ├── logs/                 readable output of the benchmark runs
@@ -204,7 +204,8 @@ connected in practice (every drawn source reached all vertices).
 | USA-road-d.E.gr.gz | 3,598,623 | 8,778,114 | 52 MB |
 | USA-road-d.USA.gr.gz | 23,947,347 | 58,333,344 | 351 MB |
 
-The files are not in the repository: download them into the `datasets/` folder following
+NY, COL, CAL and E are in the repository, under `datasets/`. The USA graph (351 MB) exceeds GitHub's
+100 MB limit per file and must be downloaded into the same folder following
 [`datasets/README.md`](datasets/README.md).
 
 The server sometimes closes long connections; if `gzip -t` fails, download the file again from scratch
