@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
-"""Leitor e validador do formato DIMACS (9th Challenge) para grafos .gr / .gr.gz.
+"""Reader and validator of the DIMACS format (9th Challenge) for .gr / .gr.gz graphs.
 
-Formato: linhas `c` são comentários, `p sp <n> <m>` é o cabeçalho e cada
-`a <u> <v> <w>` é um arco dirigido com vértices 1-indexados e peso inteiro.
-O grafo é devolvido 0-indexado.
+Format: `c` lines are comments, `p sp <n> <m>` is the header and each
+`a <u> <v> <w>` is a directed arc with 1-indexed vertices and an integer weight.
+The graph is returned 0-indexed.
 
-Uso como validador:
-    python3 src/grafos/dimacs.py --check datasets/USA-road-d.NY.gr.gz [outros arquivos...]
+Usage as a validator:
+    python3 src/graphs/dimacs.py --check datasets/USA-road-d.NY.gr.gz [more files...]
 """
 
 import argparse
@@ -20,22 +20,14 @@ from itertools import accumulate
 
 
 def open_text(path):
+    """Open the file in text mode, decompressing it if it ends in .gz."""
     return gzip.open(path, "rt") if path.endswith(".gz") else open(path, "r")
 
 
-def read_header(path):
-    with open_text(path) as f:
-        for line in f:
-            if line[0] == "p":
-                _, _, n, m = line.split()
-                return int(n), int(m)
-    raise ValueError(f"{path}: sem linha 'p sp n m'")
-
-
 def load_gr(path, graph_cls):
-    """Lê os arcos em arrays, ordena por origem (contagem) e monta adj[u] como tupla
-    intercalada (v0, w0, v1, w1, ...) com objetos int compartilhados. Sem listas
-    por vértice no caminho: o pico de memória fica em ~1,6x o tamanho final."""
+    """Read the arcs into arrays, sort them by tail (counting sort) and build adj[u] as an
+    interleaved tuple (v0, w0, v1, w1, ...) with shared int objects. No per-vertex lists
+    along the way: peak memory stays at ~1.6x the final size."""
     n = m = None
     us, vs, ws = array("i"), array("i"), array("q")
     with open_text(path) as f:
@@ -50,9 +42,9 @@ def load_gr(path, graph_cls):
                 _, _, n, m = line.split()
                 n, m = int(n), int(m)
     if n is None:
-        raise ValueError(f"{path}: sem linha 'p sp n m'")
+        raise ValueError(f"{path}: no 'p sp n m' line")
     if len(us) != m:
-        raise ValueError(f"{path}: cabeçalho declara {m} arcos, arquivo tem {len(us)}")
+        raise ValueError(f"{path}: header declares {m} arcs, file has {len(us)}")
     deg = array("i", bytes(4 * (n + 1)))
     for u in us:
         deg[u + 1] += 1
@@ -76,11 +68,12 @@ def load_gr(path, graph_cls):
 
 
 def random_sources(n, count, seed):
-    """Fontes reprodutíveis (0-indexadas) para o benchmark."""
+    """Reproducible sources (0-indexed) for the benchmark."""
     return random.Random(seed).sample(range(n), count)
 
 
 def sha256(path, bufsize=1 << 20):
+    """SHA-256 hash of the file, read in chunks, to check the download."""
     h = hashlib.sha256()
     with open(path, "rb") as f:
         while chunk := f.read(bufsize):
@@ -89,6 +82,9 @@ def sha256(path, bufsize=1 << 20):
 
 
 def check(path):
+    """Validate a DIMACS file in a single pass, without building the graph: check the number
+    of arcs against the header, look for negative weights and collect statistics (min/max
+    weight, self-loops, out-degree). Return a dict; ok=True if the file is usable."""
     t0 = time.perf_counter()
     n = m = None
     arcs = neg = loops = 0
@@ -111,7 +107,7 @@ def check(path):
                 if wmax is None or w > wmax:
                     wmax = w
                 if not (1 <= u <= n and 1 <= v <= n):
-                    raise ValueError(f"{path}: arco ({u},{v}) fora de [1,{n}]")
+                    raise ValueError(f"{path}: arc ({u},{v}) outside [1,{n}]")
             elif c == "p":
                 _, _, n, m = line.split()
                 n, m = int(n), int(m)
@@ -119,15 +115,16 @@ def check(path):
     maxdeg = max(outdeg)
     isolated = sum(1 for d in outdeg if d == 0)
     ok = arcs == m and neg == 0
-    return dict(arquivo=path, n=n, m=m, arcos_lidos=arcs, ok=ok, pesos_negativos=neg,
-                peso_min=wmin, peso_max=wmax, self_loops=loops, grau_saida_max=maxdeg,
-                sem_saida=isolated, segundos=round(time.perf_counter() - t0, 1))
+    return dict(file=path, n=n, m=m, arcs_read=arcs, ok=ok, negative_weights=neg,
+                min_weight=wmin, max_weight=wmax, self_loops=loops, max_out_degree=maxdeg,
+                no_out_arcs=isolated, seconds=round(time.perf_counter() - t0, 1))
 
 
 def main():
-    ap = argparse.ArgumentParser(description="valida arquivos DIMACS .gr/.gr.gz")
-    ap.add_argument("--check", nargs="+", metavar="ARQUIVO", required=True)
-    ap.add_argument("--sha256", action="store_true", help="também calcula o sha256")
+    """Command line of the validator (--check); exit with code 1 if any file fails."""
+    ap = argparse.ArgumentParser(description="validate DIMACS .gr/.gr.gz files")
+    ap.add_argument("--check", nargs="+", metavar="FILE", required=True)
+    ap.add_argument("--sha256", action="store_true", help="also compute the sha256")
     a = ap.parse_args()
     bad = 0
     for p in a.check:

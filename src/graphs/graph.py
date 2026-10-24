@@ -5,6 +5,7 @@ the DIMACS loader (dimacs.py) and the benchmark (benchmark.py).
 
 import random
 
+
 class Graph:
     """Directed graph with non-negative weights, vertices 0..n-1.
 
@@ -24,7 +25,7 @@ class Graph:
     def add_edge(self, u, v, w):
         """Append the arc u -> v with weight w >= 0."""
         if w < 0:
-            raise ValueError("pesos devem ser não negativos")
+            raise ValueError("weights must be non-negative")
         self.adj[u] += (v, w)
         self.m += 1
 

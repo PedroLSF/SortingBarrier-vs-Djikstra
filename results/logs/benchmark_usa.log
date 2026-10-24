@@ -1,0 +1,12 @@
+
+== USA-road-d.USA: n=23947347 m=58333344 (loaded in 77.8s)
+  source 21455604 [     c]  BMSSP  237602.8 ms   Dijkstra  27309.9 ms   ratio  8.70   comparisons  1.97x   ok
+  source 21455604 [python]  BMSSP  240370.2 ms   Dijkstra  60880.9 ms   ratio  3.95   comparisons  1.97x   ok
+  source  3735651 [     c]  BMSSP  257821.1 ms   Dijkstra  27084.3 ms   ratio  9.52   comparisons  2.04x   ok
+  source  3735651 [python]  BMSSP  255213.6 ms   Dijkstra  55540.0 ms   ratio  4.60   comparisons  2.04x   ok
+  source   839222 [     c]  BMSSP  254735.8 ms   Dijkstra  25856.3 ms   ratio  9.85   comparisons  2.04x   ok
+  source   839222 [python]  BMSSP  250561.6 ms   Dijkstra  54616.0 ms   ratio  4.59   comparisons  2.04x   ok
+  median [     c]: BMSSP 254735.8 ms   Dijkstra 27084.3 ms   ratio 9.41   (k=2, t=8, l=4)
+  median [python]: BMSSP 250561.6 ms   Dijkstra 55540.0 ms   ratio 4.51   (k=2, t=8, l=4)
+
+Results in results_usa.csv

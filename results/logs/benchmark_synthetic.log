@@ -1,0 +1,102 @@
+
+== rand-2^15-m3n: n=32768 m=98304 (loaded in 0.1s)
+  source     7297 [     c]  BMSSP     310.4 ms   Dijkstra     56.1 ms   ratio  5.54   comparisons  1.69x   ok
+  source     7297 [python]  BMSSP     303.3 ms   Dijkstra    100.4 ms   ratio  3.02   comparisons  1.69x   ok
+  source     1640 [     c]  BMSSP     316.4 ms   Dijkstra     48.5 ms   ratio  6.52   comparisons  1.74x   ok
+  source     1640 [python]  BMSSP     309.3 ms   Dijkstra    105.0 ms   ratio  2.95   comparisons  1.74x   ok
+  source    18025 [     c]  BMSSP     312.4 ms   Dijkstra     49.4 ms   ratio  6.33   comparisons  1.71x   ok
+  source    18025 [python]  BMSSP     302.3 ms   Dijkstra    104.0 ms   ratio  2.91   comparisons  1.71x   ok
+  median [     c]: BMSSP 312.4 ms   Dijkstra 49.4 ms   ratio 6.33   (k=2, t=6, l=3)
+  median [python]: BMSSP 303.3 ms   Dijkstra 104.0 ms   ratio 2.92   (k=2, t=6, l=3)
+
+== rand-2^16-m3n: n=65536 m=196608 (loaded in 0.2s)
+  source    14593 [     c]  BMSSP     683.2 ms   Dijkstra    147.7 ms   ratio  4.62   comparisons  1.56x   ok
+  source    14593 [python]  BMSSP     738.6 ms   Dijkstra    249.0 ms   ratio  2.97   comparisons  1.56x   ok
+  source     3279 [     c]  BMSSP     680.3 ms   Dijkstra    151.7 ms   ratio  4.48   comparisons  1.55x   ok
+  source     3279 [python]  BMSSP     650.6 ms   Dijkstra    244.2 ms   ratio  2.66   comparisons  1.55x   ok
+  source    36049 [     c]  BMSSP     648.5 ms   Dijkstra    133.5 ms   ratio  4.86   comparisons  1.52x   ok
+  source    36049 [python]  BMSSP     704.6 ms   Dijkstra    260.9 ms   ratio  2.70   comparisons  1.52x   ok
+  median [     c]: BMSSP 680.3 ms   Dijkstra 147.7 ms   ratio 4.61   (k=2, t=6, l=3)
+  median [python]: BMSSP 704.6 ms   Dijkstra 249.0 ms   ratio 2.83   (k=2, t=6, l=3)
+
+== rand-2^17-m3n: n=131072 m=393216 (loaded in 0.4s)
+  source    29185 [     c]  BMSSP    1518.9 ms   Dijkstra    361.9 ms   ratio  4.20   comparisons  1.39x   ok
+  source    29185 [python]  BMSSP    1422.6 ms   Dijkstra    592.4 ms   ratio  2.40   comparisons  1.39x   ok
+  source     6557 [     c]  BMSSP    1421.9 ms   Dijkstra    373.0 ms   ratio  3.81   comparisons  1.40x   ok
+  source     6557 [python]  BMSSP    1446.5 ms   Dijkstra    593.5 ms   ratio  2.44   comparisons  1.40x   ok
+  source    72098 [     c]  BMSSP    1491.2 ms   Dijkstra    329.7 ms   ratio  4.52   comparisons  1.38x   ok
+  source    72098 [python]  BMSSP    1417.2 ms   Dijkstra    580.2 ms   ratio  2.44   comparisons  1.38x   ok
+  median [     c]: BMSSP 1491.2 ms   Dijkstra 361.9 ms   ratio 4.12   (k=2, t=6, l=3)
+  median [python]: BMSSP 1422.6 ms   Dijkstra 592.4 ms   ratio 2.40   (k=2, t=6, l=3)
+
+== rand-2^18-m3n: n=262144 m=786432 (loaded in 1.0s)
+  source    58370 [     c]  BMSSP    2945.3 ms   Dijkstra    941.2 ms   ratio  3.13   comparisons  1.28x   ok
+  source    58370 [python]  BMSSP    2901.2 ms   Dijkstra   1415.6 ms   ratio  2.05   comparisons  1.28x   ok
+  source    13113 [     c]  BMSSP    2905.3 ms   Dijkstra    943.4 ms   ratio  3.08   comparisons  1.28x   ok
+  source    13113 [python]  BMSSP    2950.8 ms   Dijkstra   1419.7 ms   ratio  2.08   comparisons  1.28x   ok
+  source   144195 [     c]  BMSSP    2980.9 ms   Dijkstra    956.0 ms   ratio  3.12   comparisons  1.26x   ok
+  source   144195 [python]  BMSSP    2965.7 ms   Dijkstra   1438.8 ms   ratio  2.06   comparisons  1.26x   ok
+  median [     c]: BMSSP 2945.3 ms   Dijkstra 943.4 ms   ratio 3.12   (k=2, t=6, l=3)
+  median [python]: BMSSP 2950.8 ms   Dijkstra 1419.7 ms   ratio 2.08   (k=2, t=6, l=3)
+
+== rand-2^19-m3n: n=524288 m=1572864 (loaded in 2.3s)
+  source   116740 [     c]  BMSSP    7038.8 ms   Dijkstra   2396.8 ms   ratio  2.94   comparisons  1.27x   ok
+  source   116740 [python]  BMSSP    6970.7 ms   Dijkstra   3429.7 ms   ratio  2.03   comparisons  1.27x   ok
+  source    26226 [     c]  BMSSP    7067.1 ms   Dijkstra   2447.8 ms   ratio  2.89   comparisons  1.28x   ok
+  source    26226 [python]  BMSSP    6963.0 ms   Dijkstra   3421.0 ms   ratio  2.04   comparisons  1.28x   ok
+  source   288390 [     c]  BMSSP    7015.7 ms   Dijkstra   2438.0 ms   ratio  2.88   comparisons  1.28x   ok
+  source   288390 [python]  BMSSP    6686.1 ms   Dijkstra   3300.3 ms   ratio  2.03   comparisons  1.28x   ok
+  median [     c]: BMSSP 7038.8 ms   Dijkstra 2438.0 ms   ratio 2.89   (k=2, t=7, l=3)
+  median [python]: BMSSP 6963.0 ms   Dijkstra 3421.0 ms   ratio 2.04   (k=2, t=7, l=3)
+
+== rand-2^20-m3n: n=1048576 m=3145728 (loaded in 4.5s)
+  source   233479 [     c]  BMSSP   13900.8 ms   Dijkstra   5584.4 ms   ratio  2.49   comparisons  1.17x   ok
+  source   233479 [python]  BMSSP   14144.6 ms   Dijkstra   7677.6 ms   ratio  1.84   comparisons  1.17x   ok
+  source    52452 [     c]  BMSSP   15473.6 ms   Dijkstra   5779.2 ms   ratio  2.68   comparisons  1.18x   ok
+  source    52452 [python]  BMSSP   14929.1 ms   Dijkstra   8188.5 ms   ratio  1.82   comparisons  1.18x   ok
+  source   576779 [     c]  BMSSP   15698.5 ms   Dijkstra   5993.2 ms   ratio  2.62   comparisons  1.17x   ok
+  source   576779 [python]  BMSSP   14369.1 ms   Dijkstra   8113.8 ms   ratio  1.77   comparisons  1.17x   ok
+  median [     c]: BMSSP 15473.6 ms   Dijkstra 5779.2 ms   ratio 2.68   (k=2, t=7, l=3)
+  median [python]: BMSSP 14369.1 ms   Dijkstra 8113.8 ms   ratio 1.77   (k=2, t=7, l=3)
+
+== rand-2^21-m3n: n=2097152 m=6291456 (loaded in 9.8s)
+  source   466957 [     c]  BMSSP   31590.8 ms   Dijkstra  13889.3 ms   ratio  2.27   comparisons  1.11x   ok
+  source   466957 [python]  BMSSP   30921.0 ms   Dijkstra  18113.9 ms   ratio  1.71   comparisons  1.11x   ok
+  source   104903 [     c]  BMSSP   32815.1 ms   Dijkstra  14072.7 ms   ratio  2.33   comparisons  1.09x   ok
+  source   104903 [python]  BMSSP   31001.9 ms   Dijkstra  20272.1 ms   ratio  1.53   comparisons  1.09x   ok
+  source  1153557 [     c]  BMSSP   32496.2 ms   Dijkstra  14813.9 ms   ratio  2.19   comparisons  1.09x   ok
+  source  1153557 [python]  BMSSP   30787.9 ms   Dijkstra  18077.0 ms   ratio  1.70   comparisons  1.09x   ok
+  median [     c]: BMSSP 32496.2 ms   Dijkstra 14072.7 ms   ratio 2.31   (k=2, t=7, l=3)
+  median [python]: BMSSP 30921.0 ms   Dijkstra 18113.9 ms   ratio 1.71   (k=2, t=7, l=3)
+
+== rand-2^22-m3n: n=4194304 m=12582912 (loaded in 20.3s)
+  source   933913 [     c]  BMSSP   78645.0 ms   Dijkstra  32437.3 ms   ratio  2.42   comparisons  1.24x   ok
+  source   933913 [python]  BMSSP   81406.2 ms   Dijkstra  43707.1 ms   ratio  1.86   comparisons  1.24x   ok
+  source   209806 [     c]  BMSSP   85269.5 ms   Dijkstra  31981.4 ms   ratio  2.67   comparisons  1.24x   ok
+  source   209806 [python]  BMSSP   87690.2 ms   Dijkstra  45709.6 ms   ratio  1.92   comparisons  1.24x   ok
+  source  2307114 [     c]  BMSSP   87109.9 ms   Dijkstra  32433.3 ms   ratio  2.69   comparisons  1.24x   ok
+  source  2307114 [python]  BMSSP   81450.9 ms   Dijkstra  43702.9 ms   ratio  1.86   comparisons  1.24x   ok
+  median [     c]: BMSSP 85269.5 ms   Dijkstra 32433.3 ms   ratio 2.63   (k=2, t=7, l=4)
+  median [python]: BMSSP 81450.9 ms   Dijkstra 43707.1 ms   ratio 1.86   (k=2, t=7, l=4)
+
+== rand-2^23-m3n: n=8388608 m=25165824 (loaded in 45.0s)
+  source  1867826 [     c]  BMSSP  147801.0 ms   Dijkstra  71293.5 ms   ratio  2.07   comparisons  1.02x   ok
+  source  1867826 [python]  BMSSP  144880.7 ms   Dijkstra  92966.4 ms   ratio  1.56   comparisons  1.02x   ok
+  source   419611 [     c]  BMSSP  153032.7 ms   Dijkstra  76285.7 ms   ratio  2.01   comparisons  1.02x   ok
+  source   419611 [python]  BMSSP  182726.3 ms   Dijkstra  95258.4 ms   ratio  1.92   comparisons  1.02x   ok
+  source  4614227 [     c]  BMSSP  175214.8 ms   Dijkstra  76107.5 ms   ratio  2.30   comparisons  1.03x   ok
+  source  4614227 [python]  BMSSP  147278.3 ms   Dijkstra  96952.3 ms   ratio  1.52   comparisons  1.03x   ok
+  median [     c]: BMSSP 153032.7 ms   Dijkstra 76107.5 ms   ratio 2.01   (k=2, t=8, l=3)
+  median [python]: BMSSP 147278.3 ms   Dijkstra 95258.4 ms   ratio 1.55   (k=2, t=8, l=3)
+
+== rand-2^24-m3n: n=16777216 m=50331648 (loaded in 90.9s)
+  source  3735651 [     c]  BMSSP  303864.6 ms   Dijkstra 177071.5 ms   ratio  1.72   comparisons  0.99x   ok
+  source  3735651 [python]  BMSSP  301058.8 ms   Dijkstra 213356.6 ms   ratio  1.41   comparisons  0.99x   ok
+  source   839222 [     c]  BMSSP  304357.7 ms   Dijkstra 173476.7 ms   ratio  1.75   comparisons  0.98x   ok
+  source   839222 [python]  BMSSP  304326.5 ms   Dijkstra 221486.9 ms   ratio  1.37   comparisons  0.98x   ok
+  source  9228453 [     c]  BMSSP  300039.8 ms   Dijkstra 178557.3 ms   ratio  1.68   comparisons  0.98x   ok
+  source  9228453 [python]  BMSSP  303611.4 ms   Dijkstra 214615.1 ms   ratio  1.41   comparisons  0.98x   ok
+  median [     c]: BMSSP 303864.6 ms   Dijkstra 177071.5 ms   ratio 1.72   (k=2, t=8, l=3)
+  median [python]: BMSSP 303611.4 ms   Dijkstra 214615.1 ms   ratio 1.41   (k=2, t=8, l=3)
+
+Results in results_synthetic.csv

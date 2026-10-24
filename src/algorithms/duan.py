@@ -25,25 +25,31 @@ Code <-> paper map:
     DuanSSSP.find_pivots  -> Algorithm 1, FindPivots (Lemma 3.2)
     DuanSSSP.base_case    -> Algorithm 2, BaseCase
     DuanSSSP.bmssp        -> Algorithm 3, BMSSP (Lemma 3.1)
-    estrutura_d.BlockDS   -> data structure of Lemma 3.3 (Insert / BatchPrepend / Pull)
+    block_ds.BlockDS   -> data structure of Lemma 3.3 (Insert / BatchPrepend / Pull)
     (d̂[v], h[v], v)       -> Assumption 2.1, total order on paths, built inline by the algorithms
-    grafo.to_constant_degree -> constant-degree transformation (Section 2)
+    graph.to_constant_degree -> constant-degree transformation (Section 2)
 
 Notes:
     * The speed-up is asymptotic and holds in the comparison-addition model. In wall-clock
       time, in Python, Dijkstra with heapq is faster on every graph tested (see README).
-    * comum.usar_heap("python") swaps the C-accelerated heapq for the pure-Python heapq.py,
+    * common.use_heap("python") swaps the C-accelerated heapq for the pure-Python heapq.py,
       in both Dijkstra and BaseCase, to measure how much of that gap is due to the interpreter.
     * The structure D finds the k smallest items by quickselect (expected linear time),
       where the paper cites the deterministic selection of [BFP+73].
     * Logs are for following the execution; measurements live in benchmark.py.
+    * The relaxation step (Remark 3.4) is written inline in find_pivots, base_case and bmssp
+      on purpose, not factored into a method: it runs once per examined arc, and a Python
+      method call per arc would add a fixed cost to the timed runs that has nothing to do
+      with the algorithm. The three copies differ in what they do with the relaxed vertex
+      (add to W_i, push to the heap, Insert/BatchPrepend into D).
 """
 
 import logging
 import math
 
-from .comum import INF, KEY_INF, Chave, heap_ops, log
-from .estrutura_d import BlockDS
+from .common import INF, KEY_INF, CountedKey, heap_ops, log
+from .block_ds import BlockDS
+
 
 class DuanSSSP:
     """Single-source shortest paths by Duan et al. (2025), with logs and operation counts.
@@ -61,21 +67,21 @@ class DuanSSSP:
         * the relaxation test "d̂[u] + w_uv <= d̂[v]" (Remark 3.4) compares the candidate
           path ⟨d̂[u]+w, h[u]+1, v, u, ...⟩ with the current one ⟨d̂[v], h[v], v, Pred[v], ...⟩,
           that is, (d[u]+w, h[u]+1, u) <= (d[v], h[v], pred[v]); u == Pred[v] counts as
-          equality, so re-relaxing the same arc is valid (counted in re_relaxacoes_iguais).
+          equality, so re-relaxing the same arc is valid (counted in equal_rerelaxations).
 
     Options:
         show_ties: logs show the tie-break ⟨h, v⟩ next to each distance;
         preview:   number of vertices printed per set in the logs;
-        contar:    also count the comparisons made inside the heap and the structure D
-                   (exact, via Chave). It slows the run down, so benchmark.py collects it
+        count:    also count the comparisons made inside the heap and the structure D
+                   (exact, via CountedKey). It slows the run down, so benchmark.py collects it
                    in a run separate from the timed one.
 
-    After run(), `stats` holds the counters (see run()) and `niveis` maps each level l to
+    After run(), `stats` holds the counters (see run()) and `levels` maps each level l to
     the statistics of the BMSSP calls at that level, together with the bounds of Lemma 3.9
-    on |S| (S_cota = 2^(lt)) and |U| (U_cota = 4k·2^(lt)).
+    on |S| (S_bound = 2^(lt)) and |U| (U_bound = 4k·2^(lt)).
     """
 
-    def __init__(self, g, source, k=None, t=None, show_ties=False, preview=8, contar=False):
+    def __init__(self, g, source, k=None, t=None, show_ties=False, preview=8, count=False):
         self.g = g
         self.s = source
         n = g.n
@@ -97,15 +103,15 @@ class DuanSSSP:
         self.preview = preview
         self.info = log.isEnabledFor(logging.INFO)
         self.debug = log.isEnabledFor(logging.DEBUG)
-        self.contar = contar
-        self.stats = dict(relaxacoes=0, re_relaxacoes_iguais=0, arestas_examinadas=0,
-                          chamadas_bmssp=0, chamadas_base=0, chamadas_findpivots=0,
-                          findpivots_desistencias=0, findpivots_S_total=0,
+        self.count = count
+        self.stats = dict(relaxations=0, equal_rerelaxations=0, arcs_examined=0,
+                          bmssp_calls=0, basecase_calls=0, findpivots_calls=0,
+                          findpivots_giveups=0, findpivots_S_total=0,
                           findpivots_W_total=0, findpivots_P_total=0,
                           pulls=0, inserts=0, prepends=0, heap_pushes=0, heap_pops=0,
-                          comparacoes_cotas=0, adicoes=0, comparacoes_explicitas=0,
-                          comparacoes_heap=0, comparacoes_D=0, comparacoes_total=0)
-        self.niveis = {}
+                          bound_comparisons=0, additions=0, explicit_comparisons=0,
+                          heap_comparisons=0, D_comparisons=0, total_comparisons=0)
+        self.levels = {}
 
     def fmt(self, key):
         """Format a value (d, h, v) of the total order for the logs."""
@@ -136,7 +142,7 @@ class DuanSSSP:
         addition plus one comparison per v ∈ W for the tight-arc test.
         """
         st = self.stats
-        st["chamadas_findpivots"] += 1
+        st["findpivots_calls"] += 1
         st["findpivots_S_total"] += len(S)
         ind = "│   " * depth
         k = self.k
@@ -146,41 +152,41 @@ class DuanSSSP:
             log.info("%s  FindPivots(B=%s, |S|=%d)", ind, self.fmt(B), len(S))
         W = set(S)
         prev = set(S)
-        arestas = 0
-        relax0 = st["relaxacoes"] + st["re_relaxacoes_iguais"]
+        arcs = 0
+        relax0 = st["relaxations"] + st["equal_rerelaxations"]
         for i in range(1, k + 1):
             Wi = set()
             for u in prev:
                 adj_u = iter(adj[u])
-                arestas += len(adj[u]) >> 1
+                arcs += len(adj[u]) >> 1
                 for v, w in zip(adj_u, adj_u):
                     du, hu = d[u] + w, h[u] + 1
                     if (du, hu, u) <= (d[v], h[v], pred[v]):
                         same = pred[v] == u and d[v] == du and h[v] == hu
                         d[v], h[v], pred[v], pred_w[v] = du, hu, u, w
-                        st["re_relaxacoes_iguais" if same else "relaxacoes"] += 1
+                        st["equal_rerelaxations" if same else "relaxations"] += 1
                         if self.debug:
-                            log.debug("%s    relaxa %s -> %s (w=%g): d̂[%s] = %s%s", ind,
+                            log.debug("%s    relax %s -> %s (w=%g): d̂[%s] = %s%s", ind,
                                       self.g.name(u), self.g.name(v), w, self.g.name(v),
                                       self.fmt((du, hu, v)),
-                                      "  (igual: re-relaxação, Remark 3.4)" if same else "")
+                                      "  (equal: re-relaxation, Remark 3.4)" if same else "")
                         if (du, hu, v) < B:
                             Wi.add(v)
             W |= Wi
             if self.debug:
-                log.debug("%s    passo %d/%d: |W_%d| = %d, |W| = %d", ind, i, k, i, len(Wi), len(W))
+                log.debug("%s    step %d/%d: |W_%d| = %d, |W| = %d", ind, i, k, i, len(Wi), len(W))
             if len(W) > k * len(S):
-                st["arestas_examinadas"] += arestas
-                st["comparacoes_cotas"] += st["relaxacoes"] + st["re_relaxacoes_iguais"] - relax0
-                st["findpivots_desistencias"] += 1
+                st["arcs_examined"] += arcs
+                st["bound_comparisons"] += st["relaxations"] + st["equal_rerelaxations"] - relax0
+                st["findpivots_giveups"] += 1
                 st["findpivots_W_total"] += len(W)
                 st["findpivots_P_total"] += len(S)
                 if self.info:
-                    log.info("%s    |W| = %d > k|S| = %d -> P = S (sem redução)", ind, len(W), k * len(S))
+                    log.info("%s    |W| = %d > k|S| = %d -> P = S (no reduction)", ind, len(W), k * len(S))
                 return set(S), W
             prev = Wi
-        st["arestas_examinadas"] += arestas
-        st["comparacoes_cotas"] += st["relaxacoes"] + st["re_relaxacoes_iguais"] - relax0
+        st["arcs_examined"] += arcs
+        st["bound_comparisons"] += st["relaxations"] + st["equal_rerelaxations"] - relax0
 
         children = {u: [] for u in W}
         has_parent = set()
@@ -203,10 +209,10 @@ class DuanSSSP:
                 P.add(r)
         st["findpivots_W_total"] += len(W)
         st["findpivots_P_total"] += len(P)
-        st["comparacoes_cotas"] += len(W)
-        st["adicoes"] += len(W)
+        st["bound_comparisons"] += len(W)
+        st["additions"] += len(W)
         if self.info:
-            log.info("%s    |W| = %d, pivôs P (árvores com >= k=%d vértices): %d de %d -> %s",
+            log.info("%s    |W| = %d, pivots P (trees with >= k=%d vertices): %d of %d -> %s",
                      ind, len(W), k, len(P), len(S), self.fmt_set(P))
         return P, W
 
@@ -222,28 +228,28 @@ class DuanSSSP:
             * otherwise: B' is the largest d̂ among the k+1 settled vertices and U the
               vertices strictly below it (partial execution).
 
-        With contar=True the heap items are Chave, so every `<` inside the heap is counted
-        in comparacoes_heap. Counted bound tests: d̂[u]+w < B per valid relaxation and
+        With count=True the heap items are CountedKey, so every `<` inside the heap is counted
+        in heap_comparisons. Counted bound tests: d̂[u]+w < B per valid relaxation and
         new value < queued value per re-queued vertex.
         """
         st = self.stats
-        st["chamadas_base"] += 1
+        st["basecase_calls"] += 1
         ind = "│   " * depth
         d, h, pred, pred_w = self.d, self.h, self.pred, self.pred_w
         (x,) = S
         if self.info:
-            log.info("%s  BaseCase(B=%s, S={%s}) -> mini-Dijkstra até k+1=%d vértices",
+            log.info("%s  BaseCase(B=%s, S={%s}) -> mini-Dijkstra up to k+1=%d vertices",
                      ind, self.fmt(B), self.g.name(x), self.k + 1)
         U0 = {x}
-        push, pop = heap_ops(self.contar)
+        push, pop = heap_ops(self.count)
         heap = []
         kx = (d[x], h[x], x)
         push(heap, (kx, x))
         in_heap = {x: kx}
         done = set()
         adj = self.g.adj
-        arestas = pushes = pops = cotas = 0
-        n0 = Chave.n
+        arcs = pushes = pops = bounds = 0
+        n0 = CountedKey.n
         while heap and len(U0) < self.k + 1:
             kv, u = pop(heap)
             pops += 1
@@ -252,44 +258,44 @@ class DuanSSSP:
             done.add(u)
             U0.add(u)
             if self.debug:
-                log.debug("%s    extrai %s (d̂=%s)", ind, self.g.name(u), self.fmt(kv))
+                log.debug("%s    extract %s (d̂=%s)", ind, self.g.name(u), self.fmt(kv))
             adj_u = iter(adj[u])
-            arestas += len(adj[u]) >> 1
+            arcs += len(adj[u]) >> 1
             for v, w in zip(adj_u, adj_u):
                 du, hu = d[u] + w, h[u] + 1
                 if (du, hu, u) <= (d[v], h[v], pred[v]):
-                    cotas += 1
+                    bounds += 1
                     if (du, hu, v) < B:
                         same = pred[v] == u and d[v] == du and h[v] == hu
                         d[v], h[v], pred[v], pred_w[v] = du, hu, u, w
-                        st["re_relaxacoes_iguais" if same else "relaxacoes"] += 1
+                        st["equal_rerelaxations" if same else "relaxations"] += 1
                         if self.debug:
-                            log.debug("%s    relaxa %s -> %s (w=%g): d̂[%s] = %s%s", ind,
+                            log.debug("%s    relax %s -> %s (w=%g): d̂[%s] = %s%s", ind,
                                       self.g.name(u), self.g.name(v), w, self.g.name(v),
                                       self.fmt((du, hu, v)),
-                                      "  (igual: re-relaxação, Remark 3.4)" if same else "")
+                                      "  (equal: re-relaxation, Remark 3.4)" if same else "")
                         kv2 = (du, hu, v)
                         old = in_heap.get(v)
                         if old is not None:
-                            cotas += 1
+                            bounds += 1
                         if old is None or kv2 < old:
                             in_heap[v] = kv2
                             push(heap, (kv2, v))
                             pushes += 1
-        st["arestas_examinadas"] += arestas
-        st["comparacoes_cotas"] += cotas
+        st["arcs_examined"] += arcs
+        st["bound_comparisons"] += bounds
         st["heap_pushes"] += pushes
         st["heap_pops"] += pops
-        st["comparacoes_heap"] += Chave.n - n0
+        st["heap_comparisons"] += CountedKey.n - n0
         if len(U0) <= self.k:
             if self.info:
-                log.info("%s    -> sucesso: B' = B = %s, U = %s", ind, self.fmt(B), self.fmt_set(U0))
+                log.info("%s    -> success: B' = B = %s, U = %s", ind, self.fmt(B), self.fmt_set(U0))
             return B, U0
         Bp = max((d[v], h[v], v) for v in U0)
         U = {v for v in U0 if (d[v], h[v], v) < Bp}
-        st["comparacoes_cotas"] += 2 * len(U0)
+        st["bound_comparisons"] += 2 * len(U0)
         if self.info:
-            log.info("%s    -> parcial: B' = %s, U = %s", ind, self.fmt(Bp), self.fmt_set(U))
+            log.info("%s    -> partial: B' = %s, U = %s", ind, self.fmt(Bp), self.fmt_set(U))
         return Bp, U
 
     def bmssp(self, l, B, S, depth=0):
@@ -307,16 +313,16 @@ class DuanSSSP:
         Returns (B', U); B' == B means a successful execution, B' < B a partial one caused by
         too large a workload. Each valid relaxation costs two bound comparisons (B_i <= val
         and either val < B or B'_i <= val), plus val < B_i for pairs that go to BatchPrepend.
-        The per-level statistics in `niveis` are updated here.
+        The per-level statistics in `levels` are updated here.
         """
         st = self.stats
-        st["chamadas_bmssp"] += 1
-        lv = self.niveis.get(l)
+        st["bmssp_calls"] += 1
+        lv = self.levels.get(l)
         if lv is None:
-            lv = self.niveis[l] = dict(chamadas=0, parciais=0, iteracoes=0, S_total=0, S_max=0,
-                                       U_total=0, U_max=0, S_cota=2 ** (l * self.t),
-                                       U_cota=4 * self.k * 2 ** (l * self.t))
-        lv["chamadas"] += 1
+            lv = self.levels[l] = dict(calls=0, partials=0, iterations=0, S_total=0, S_max=0,
+                                       U_total=0, U_max=0, S_bound=2 ** (l * self.t),
+                                       U_bound=4 * self.k * 2 ** (l * self.t))
+        lv["calls"] += 1
         lv["S_total"] += len(S)
         if len(S) > lv["S_max"]:
             lv["S_max"] = len(S)
@@ -326,27 +332,27 @@ class DuanSSSP:
             log.info("%s┌ BMSSP(l=%d, B=%s, |S|=%d) S=%s", ind, l, self.fmt(B), len(S), self.fmt_set(S))
         if l == 0:
             Bp, U = self.base_case(B, S, depth)
-            lv["parciais"] += Bp < B
+            lv["partials"] += Bp < B
             lv["U_total"] += len(U)
             if len(U) > lv["U_max"]:
                 lv["U_max"] = len(U)
             if self.info:
-                log.info("%s└ fim BMSSP(l=0): B'=%s, |U|=%d", ind, self.fmt(Bp), len(U))
+                log.info("%s└ end BMSSP(l=0): B'=%s, |U|=%d", ind, self.fmt(Bp), len(U))
             return Bp, U
 
         P, W = self.find_pivots(B, S, depth)
         M = 2 ** ((l - 1) * self.t)
-        D = BlockDS(M, B, self.fmt, depth, self.contar)
+        D = BlockDS(M, B, self.fmt, depth, self.count)
         for x in P:
             D.insert(x, (d[x], h[x], x))
         Bp_last = min(((d[x], h[x], x) for x in P), default=B)
         U = set()
         limit = self.k * 2 ** (l * self.t)
         adj = self.g.adj
-        arestas = 0
-        st["comparacoes_cotas"] += len(P)
+        arcs = 0
+        st["bound_comparisons"] += len(P)
         if self.info:
-            log.info("%s  D inicializada com M=2^((l-1)t)=%d; limite |U| < k·2^(lt)=%d; B'_0=%s",
+            log.info("%s  D initialized with M=2^((l-1)t)=%d; limit |U| < k·2^(lt)=%d; B'_0=%s",
                      ind, M, limit, self.fmt(Bp_last))
 
         i = 0
@@ -355,58 +361,58 @@ class DuanSSSP:
             Bi, Si = D.pull()
             st["pulls"] += 1
             if self.info:
-                log.info("%s  [iter %d] Pull -> B_%d=%s, |S_%d|=%d (restam %d em D)",
+                log.info("%s  [iter %d] Pull -> B_%d=%s, |S_%d|=%d (%d left in D)",
                          ind, i, i, self.fmt(Bi), i, len(Si), len(D))
             Bpi, Ui = self.bmssp(l - 1, Bi, set(Si), depth + 1)
             U |= Ui
 
             K = []
             n_ins = 0
-            relax0 = st["relaxacoes"] + st["re_relaxacoes_iguais"]
+            relax0 = st["relaxations"] + st["equal_rerelaxations"]
             for u in Ui:
                 adj_u = iter(adj[u])
-                arestas += len(adj[u]) >> 1
+                arcs += len(adj[u]) >> 1
                 for v, w in zip(adj_u, adj_u):
                     du, hu = d[u] + w, h[u] + 1
                     if (du, hu, u) <= (d[v], h[v], pred[v]):
                         same = pred[v] == u and d[v] == du and h[v] == hu
                         d[v], h[v], pred[v], pred_w[v] = du, hu, u, w
-                        st["re_relaxacoes_iguais" if same else "relaxacoes"] += 1
+                        st["equal_rerelaxations" if same else "relaxations"] += 1
                         if self.debug:
-                            log.debug("%s    relaxa %s -> %s (w=%g): d̂[%s] = %s%s", ind,
+                            log.debug("%s    relax %s -> %s (w=%g): d̂[%s] = %s%s", ind,
                                       self.g.name(u), self.g.name(v), w, self.g.name(v),
                                       self.fmt((du, hu, v)),
-                                      "  (igual: re-relaxação, Remark 3.4)" if same else "")
+                                      "  (equal: re-relaxation, Remark 3.4)" if same else "")
                         val = (du, hu, v)
                         if Bi <= val < B:
                             n_ins += D.insert(v, val)
                         elif Bpi <= val < Bi:
                             K.append((v, val))
-            st["comparacoes_cotas"] += 2 * (st["relaxacoes"] + st["re_relaxacoes_iguais"] - relax0) + len(K)
+            st["bound_comparisons"] += 2 * (st["relaxations"] + st["equal_rerelaxations"] - relax0) + len(K)
             K.extend((x, (d[x], h[x], x)) for x in Si if Bpi <= (d[x], h[x], x) < Bi)
-            st["comparacoes_cotas"] += 2 * len(Si)
+            st["bound_comparisons"] += 2 * len(Si)
             n_pre = D.batch_prepend(K)
             if self.info:
-                log.info("%s  [iter %d] B'_%d=%s, |U_%d|=%d, |U|=%d; Insert em D: %d, BatchPrepend: %d",
+                log.info("%s  [iter %d] B'_%d=%s, |U_%d|=%d, |U|=%d; Insert into D: %d, BatchPrepend: %d",
                          ind, i, i, self.fmt(Bpi), i, len(Ui), len(U), n_ins, n_pre)
             Bp_last = Bpi
 
         Bp = min(Bp_last, B)
         extra = {x for x in W if (d[x], h[x], x) < Bp} - U
         U |= extra
-        st["arestas_examinadas"] += arestas
-        st["comparacoes_cotas"] += len(W) + 1
+        st["arcs_examined"] += arcs
+        st["bound_comparisons"] += len(W) + 1
         st["inserts"] += D.n_insert
         st["prepends"] += D.n_prepend
-        lv["iteracoes"] += i
-        lv["parciais"] += Bp < B
+        lv["iterations"] += i
+        lv["partials"] += Bp < B
         lv["U_total"] += len(U)
         if len(U) > lv["U_max"]:
             lv["U_max"] = len(U)
         if self.info:
-            tipo = "sucesso" if Bp == B else "parcial (carga grande)"
-            log.info("%s└ fim BMSSP(l=%d): %s, B'=%s, |U|=%d (+%d de W)",
-                     ind, l, tipo, self.fmt(Bp), len(U), len(extra))
+            kind = "success" if Bp == B else "partial (large workload)"
+            log.info("%s└ end BMSSP(l=%d): %s, B'=%s, |U|=%d (+%d from W)",
+                     ind, l, kind, self.fmt(Bp), len(U), len(extra))
         return Bp, U
 
     def run(self):
@@ -416,20 +422,20 @@ class DuanSSSP:
         counted exactly:
             * explicit: one addition and one comparison per examined arc (d̂[u]+w <= d̂[v]),
               one comparison per heap pop (stale-entry test), and the comparisons against
-              the bounds B, B_i, B'_i plus the tight-arc test, gathered in comparacoes_cotas;
-            * internal (only with contar=True): every `<` executed inside the heap
-              (comparacoes_heap) and inside the structure D (comparacoes_D), through Chave,
-              _bisect_contado and _particiona.
-        comparacoes_total is the sum of the explicit and internal comparisons.
+              the bounds B, B_i, B'_i plus the tight-arc test, gathered in bound_comparisons;
+            * internal (only with count=True): every `<` executed inside the heap
+              (heap_comparisons) and inside the structure D (D_comparisons), through CountedKey,
+              _counted_bisect and _partition.
+        total_comparisons is the sum of the explicit and internal comparisons.
         """
         if self.info:
-            log.info("Parâmetros: n=%d, m=%d, k=%d, t=%d, nível do topo l=%d",
+            log.info("Parameters: n=%d, m=%d, k=%d, t=%d, top level l=%d",
                      self.g.n, self.g.m, self.k, self.t, self.top_level)
-        n0 = Chave.n
+        n0 = CountedKey.n
         self.bmssp(self.top_level, KEY_INF, {self.s})
         st = self.stats
-        st["adicoes"] += st["arestas_examinadas"]
-        st["comparacoes_explicitas"] = st["arestas_examinadas"] + st["heap_pops"] + st["comparacoes_cotas"]
-        st["comparacoes_D"] = Chave.n - n0 - st["comparacoes_heap"]
-        st["comparacoes_total"] = st["comparacoes_explicitas"] + st["comparacoes_heap"] + st["comparacoes_D"]
+        st["additions"] += st["arcs_examined"]
+        st["explicit_comparisons"] = st["arcs_examined"] + st["heap_pops"] + st["bound_comparisons"]
+        st["D_comparisons"] = CountedKey.n - n0 - st["heap_comparisons"]
+        st["total_comparisons"] = st["explicit_comparisons"] + st["heap_comparisons"] + st["D_comparisons"]
         return self.d

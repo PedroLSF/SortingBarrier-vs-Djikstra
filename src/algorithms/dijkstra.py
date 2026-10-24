@@ -7,24 +7,24 @@ With a Fibonacci heap [Fredman and Tarjan, 1987] the bound would be O(m + n log 
 binary heap is the usual choice and is what Python's heapq provides.
 """
 
-from .comum import INF, Chave, heap_ops
+from .common import INF, CountedKey, heap_ops
 
 
-def dijkstra(g, s, contar=False):
+def dijkstra(g, s, count=False):
     """Reference Dijkstra from s, with a binary heap and lazy deletion.
 
     Returns (d, stats), where d is the distance list and stats counts relaxations, heap
     operations, examined arcs, additions and comparisons in the comparison-addition model
-    (one per examined arc plus one per pop). With contar=True the heap items are Chave and
-    every `<` executed inside the heap is counted in comparacoes_heap.
+    (one per examined arc plus one per pop). With count=True the heap items are CountedKey
+    and every `<` executed inside the heap is counted in heap_comparisons.
     """
     d = [INF] * g.n
     d[s] = 0
     adj = g.adj
-    relax = pops = arestas = 0
+    relax = pops = arcs = 0
     pushes = 1
-    n0 = Chave.n
-    push, pop = heap_ops(contar)
+    n0 = CountedKey.n
+    push, pop = heap_ops(count)
     heap = []
     push(heap, (0, s))
     while heap:
@@ -33,7 +33,7 @@ def dijkstra(g, s, contar=False):
         if du > d[u]:
             continue
         adj_u = iter(adj[u])
-        arestas += len(adj[u]) >> 1
+        arcs += len(adj[u]) >> 1
         for v, w in zip(adj_u, adj_u):
             nd = du + w
             if nd < d[v]:
@@ -41,7 +41,7 @@ def dijkstra(g, s, contar=False):
                 relax += 1
                 push(heap, (nd, v))
                 pushes += 1
-    stats = dict(relaxacoes=relax, pops=pops, pushes=pushes, arestas_examinadas=arestas,
-                 adicoes=arestas, comparacoes_explicitas=arestas + pops, comparacoes_heap=Chave.n - n0)
-    stats["comparacoes_total"] = stats["comparacoes_explicitas"] + stats["comparacoes_heap"]
+    stats = dict(relaxations=relax, pops=pops, pushes=pushes, arcs_examined=arcs,
+                 additions=arcs, explicit_comparisons=arcs + pops, heap_comparisons=CountedKey.n - n0)
+    stats["total_comparisons"] = stats["explicit_comparisons"] + stats["heap_comparisons"]
     return d, stats

@@ -17,7 +17,7 @@ from collections import deque
 from itertools import compress
 from operator import not_
 
-from .comum import KEY_INF, TRACE, Chave, log
+from .common import KEY_INF, TRACE, CountedKey, log
 
 
 class _Block:
@@ -30,12 +30,12 @@ class _Block:
         self.upper = upper
 
 
-def _bisect_contado(a, x):
-    """bisect.bisect_left(a, x) that adds every comparison it makes to Chave.n."""
+def _counted_bisect(a, x):
+    """bisect.bisect_left(a, x) that adds every comparison it makes to CountedKey.n."""
     lo, hi = 0, len(a)
     while lo < hi:
         mid = (lo + hi) >> 1
-        Chave.n += 1
+        CountedKey.n += 1
         if a[mid] < x:
             lo = mid + 1
         else:
@@ -43,53 +43,53 @@ def _bisect_contado(a, x):
     return lo
 
 
-_rng_sel = random.Random(2025)
+_select_rng = random.Random(2025)
 
 
-def _particiona(a, p, contar):
+def _partition(a, p, count):
     """Split the (key, value) pairs of a into (value < p, value > p), one comparison each.
 
     Values are distinct (the total order of Assumption 2.1) and p itself is not in a.
-    With contar=True the len(a) comparisons are added to Chave.n.
+    With count=True the len(a) comparisons are added to CountedKey.n.
     """
     flags = [kv[1] < p for kv in a]
-    if contar:
-        Chave.n += len(a)
+    if count:
+        CountedKey.n += len(a)
     return list(compress(a, flags)), list(compress(a, map(not_, flags)))
 
 
-def _selecao(a, k, contar):
+def _select(a, k, count):
     """Select the k pairs of smallest value in a, for 0 < k < len(a).
 
     Returns (k smallest, the rest, largest value among the k smallest); a is consumed.
     Lemma 3.3 needs linear-time selection: this is quickselect, which partitions around a
-    random pivot (seeded _rng_sel, so runs are reproducible) and recurses only into the side
-    holding the k-th element, for O(len(a)) expected comparisons. The paper cites the
+    random pivot (seeded _select_rng, so runs are reproducible) and recurses only into the
+    side holding the k-th element, for O(len(a)) expected comparisons. The paper cites the
     deterministic selection of [BFP+73] instead; only the guarantee changes, from worst
     case to expected.
     """
-    menores, maiores = [], []
+    smaller, larger = [], []
     while True:
         if len(a) == 1:
-            menores += a
-            return menores, maiores, a[0][1]
-        i = _rng_sel.randrange(len(a))
+            smaller += a
+            return smaller, larger, a[0][1]
+        i = _select_rng.randrange(len(a))
         piv = a[i]
         a[i] = a[-1]
         a.pop()
-        lo, hi = _particiona(a, piv[1], contar)
+        lo, hi = _partition(a, piv[1], count)
         if k <= len(lo):
-            maiores += hi
-            maiores.append(piv)
+            larger += hi
+            larger.append(piv)
             a = lo
         elif k == len(lo) + 1:
-            menores += lo
-            menores.append(piv)
-            maiores += hi
-            return menores, maiores, piv[1]
+            smaller += lo
+            smaller.append(piv)
+            larger += hi
+            return smaller, larger, piv[1]
         else:
-            menores += lo
-            menores.append(piv)
+            smaller += lo
+            smaller.append(piv)
             k -= len(lo) + 1
             a = hi
 
@@ -105,17 +105,17 @@ class BlockDS:
     Differences from the paper:
         * the red-black tree over the D1 bounds is replaced by a sorted list `uppers`
           searched with bisect (same search, same O(log) cost per lookup);
-        * Split, Pull and BatchPrepend find the k smallest by quickselect (_selecao),
+        * Split, Pull and BatchPrepend find the k smallest by quickselect (_select),
           without sorting;
         * emptied blocks are not removed right away; empty blocks at the front of each
           sequence are dropped at the next Pull (_compact), as the paper does by counting
           deleted elements in the block size.
 
-    With contar=True every comparison executed inside D is added to Chave.n.
+    With count=True every comparison executed inside D is added to CountedKey.n.
     fmt and depth are only used for TRACE logs.
     """
 
-    def __init__(self, M, B, fmt, depth, contar=False):
+    def __init__(self, M, B, fmt, depth, count=False):
         self.M = max(1, M)
         self.B = B
         self.D0 = deque()
@@ -127,8 +127,8 @@ class BlockDS:
         self.n_insert = 0
         self.n_prepend = 0
         self.tracing = log.isEnabledFor(TRACE)
-        self.contar = contar
-        self._bisect = _bisect_contado if contar else bisect_left
+        self.count = count
+        self._bisect = _counted_bisect if count else bisect_left
 
     def __len__(self):
         """Number of keys currently stored."""
@@ -156,14 +156,14 @@ class BlockDS:
                 return False
             self._delete(key)
         i = min(self._bisect(self.uppers, value), len(self.D1) - 1)
-        if self.contar:
-            Chave.n += old is not None
+        if self.count:
+            CountedKey.n += old is not None
         blk = self.D1[i]
         blk.items[key] = value
         self.where[key] = blk
         self.n_insert += 1
         if self.tracing:
-            self._trace("Insert(%s, %s) -> bloco D1[%d]", key, self.fmt(value), i)
+            self._trace("Insert(%s, %s) -> block D1[%d]", key, self.fmt(value), i)
         if len(blk.items) > self.M:
             self._split(i)
         return True
@@ -173,16 +173,16 @@ class BlockDS:
         median as its upper bound, the right one keeps the old bound."""
         blk = self.D1[i]
         items = list(blk.items.items())
-        esq, dir_, cota = _selecao(items, len(items) // 2, self.contar)
-        left = _Block(dict(esq), upper=cota)
-        right = _Block(dict(dir_), upper=blk.upper)
+        left_items, right_items, bound = _select(items, len(items) // 2, self.count)
+        left = _Block(dict(left_items), upper=bound)
+        right = _Block(dict(right_items), upper=blk.upper)
         for b in (left, right):
             for k in b.items:
                 self.where[k] = b
         self.D1[i:i + 1] = [left, right]
         self.uppers[i:i + 1] = [left.upper, right.upper]
         if self.tracing:
-            self._trace("Split de D1[%d]: %d + %d elementos", i, len(left.items), len(right.items))
+            self._trace("Split of D1[%d]: %d + %d items", i, len(left.items), len(right.items))
 
     def batch_prepend(self, pairs):
         """BatchPrepend(pairs): add L pairs whose values are all smaller than every value in D.
@@ -193,48 +193,48 @@ class BlockDS:
         Returns the number of pairs stored.
         """
         best = {}
-        feitas = 0
+        compared = 0
         for k, v in pairs:
             b = best.get(k)
             if b is None:
                 best[k] = v
             else:
-                feitas += 1
+                compared += 1
                 if v < b:
                     best[k] = v
         items = []
         for k, v in best.items():
             old = self.where.get(k)
             if old is not None:
-                feitas += 1
+                compared += 1
                 if old.items[k] <= v:
                     continue
                 self._delete(k)
             items.append((k, v))
-        if self.contar:
-            Chave.n += feitas
+        if self.count:
+            CountedKey.n += compared
         if not items:
             return 0
         if len(items) <= self.M:
             blocks = [_Block(dict(items))]
         else:
-            blocks = [_Block(dict(parte)) for parte in self._em_blocos(items)]
+            blocks = [_Block(dict(part)) for part in self._into_blocks(items)]
         for b in blocks:
             for k in b.items:
                 self.where[k] = b
         self.D0.extendleft(reversed(blocks))
         self.n_prepend += len(items)
         if self.tracing:
-            self._trace("BatchPrepend de %d pares em %d bloco(s) de D0", len(items), len(blocks))
+            self._trace("BatchPrepend of %d pairs into %d block(s) of D0", len(items), len(blocks))
         return len(items)
 
-    def _em_blocos(self, items):
+    def _into_blocks(self, items):
         """Split items into blocks of at most M pairs, ordered among themselves, by successive
         medians: O(L log(L/M)) comparisons for L items."""
         if len(items) <= self.M:
             return [items]
-        esq, dir_, _ = _selecao(items, len(items) // 2, self.contar)
-        return self._em_blocos(esq) + self._em_blocos(dir_)
+        left_items, right_items, _ = _select(items, len(items) // 2, self.count)
+        return self._into_blocks(left_items) + self._into_blocks(right_items)
 
     def _compact(self):
         """Drop the empty blocks at the front of D0 and D1. The last D1 block, whose upper
@@ -270,7 +270,7 @@ class BlockDS:
                 cand.extend(blk.items.items())
                 got += len(blk.items)
         if len(cand) > M:
-            cand, _, _ = _selecao(cand, M, self.contar)
+            cand, _, _ = _select(cand, M, self.count)
         for k, _ in cand:
             self._delete(k)
 
@@ -283,9 +283,9 @@ class BlockDS:
             first_d0 = min(b0.values()) if b0 else KEY_INF
             first_d1 = min(b1.values()) if b1 else KEY_INF
             x = min(first_d0, first_d1)
-            if self.contar:
-                Chave.n += (len(b0) - 1 if b0 else 0) + (len(b1) - 1 if b1 else 0) + 1
+            if self.count:
+                CountedKey.n += (len(b0) - 1 if b0 else 0) + (len(b1) - 1 if b1 else 0) + 1
         S = [k for k, _ in cand]
         if self.tracing:
-            self._trace("Pull -> %d chave(s), x = %s", len(S), self.fmt(x))
+            self._trace("Pull -> %d key(s), x = %s", len(S), self.fmt(x))
         return x, S

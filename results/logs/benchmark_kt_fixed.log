@@ -1,0 +1,26 @@
+
+== USA-road-d.NY: n=264346 m=733846 (loaded in 1.0s)
+  source    58370 [     c]  BMSSP    2362.6 ms   Dijkstra    232.6 ms   ratio 10.16   ok
+  source    13113 [     c]  BMSSP    2358.8 ms   Dijkstra    238.7 ms   ratio  9.88   ok
+  source   144195 [     c]  BMSSP    2364.7 ms   Dijkstra    229.1 ms   ratio 10.32   ok
+  median [     c]: BMSSP 2362.6 ms   Dijkstra 232.6 ms   ratio 10.16   (k=2, t=6, l=4)
+
+== USA-road-d.COL: n=435666 m=1057066 (loaded in 1.4s)
+  source   335244 [     c]  BMSSP    4839.8 ms   Dijkstra    369.8 ms   ratio 13.09   ok
+  source    58370 [     c]  BMSSP    4785.0 ms   Dijkstra    358.9 ms   ratio 13.33   ok
+  source    13113 [     c]  BMSSP    4772.6 ms   Dijkstra    358.7 ms   ratio 13.31   ok
+  median [     c]: BMSSP 4785.0 ms   Dijkstra 358.9 ms   ratio 13.33   (k=2, t=6, l=4)
+
+== USA-road-d.CAL: n=1890815 m=4657742 (loaded in 6.4s)
+  source  1340976 [     c]  BMSSP   17993.7 ms   Dijkstra   1688.7 ms   ratio 10.66   ok
+  source   233479 [     c]  BMSSP   17634.9 ms   Dijkstra   1694.4 ms   ratio 10.41   ok
+  source    52452 [     c]  BMSSP   17892.5 ms   Dijkstra   1729.9 ms   ratio 10.34   ok
+  median [     c]: BMSSP 17892.5 ms   Dijkstra 1694.4 ms   ratio 10.56   (k=2, t=6, l=4)
+
+== USA-road-d.E: n=3598623 m=8778114 (loaded in 12.1s)
+  source  2681951 [     c]  BMSSP   34516.4 ms   Dijkstra   3704.6 ms   ratio  9.32   ok
+  source   466957 [     c]  BMSSP   33946.3 ms   Dijkstra   3364.9 ms   ratio 10.09   ok
+  source   104903 [     c]  BMSSP   34298.2 ms   Dijkstra   3558.2 ms   ratio  9.64   ok
+  median [     c]: BMSSP 34298.2 ms   Dijkstra 3558.2 ms   ratio 9.64   (k=2, t=6, l=4)
+
+Results in results_kt_fixed.csv

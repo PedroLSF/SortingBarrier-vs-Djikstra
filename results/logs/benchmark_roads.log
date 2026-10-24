@@ -1,0 +1,98 @@
+
+== USA-road-d.NY: n=264346 m=733846 (loaded in 1.0s)
+  source    58370 [     c]  BMSSP    2280.6 ms   Dijkstra    225.5 ms   ratio 10.11   comparisons  2.31x   ok
+  source    58370 [python]  BMSSP    2334.7 ms   Dijkstra    488.2 ms   ratio  4.78   comparisons  2.31x   ok
+  source    13113 [     c]  BMSSP    2294.1 ms   Dijkstra    229.5 ms   ratio 10.00   comparisons  2.28x   ok
+  source    13113 [python]  BMSSP    2363.2 ms   Dijkstra    516.4 ms   ratio  4.58   comparisons  2.28x   ok
+  source   144195 [     c]  BMSSP    2368.7 ms   Dijkstra    233.9 ms   ratio 10.13   comparisons  2.28x   ok
+  source   144195 [python]  BMSSP    2343.3 ms   Dijkstra    534.1 ms   ratio  4.39   comparisons  2.28x   ok
+  source   128394 [     c]  BMSSP    2321.8 ms   Dijkstra    231.6 ms   ratio 10.02   comparisons  2.29x   ok
+  source   128394 [python]  BMSSP    2288.2 ms   Dijkstra    508.5 ms   ratio  4.50   comparisons  2.29x   ok
+  source   117027 [     c]  BMSSP    2373.1 ms   Dijkstra    227.9 ms   ratio 10.41   comparisons  2.32x   ok
+  source   117027 [python]  BMSSP    2378.0 ms   Dijkstra    525.4 ms   ratio  4.53   comparisons  2.32x   ok
+  source    73159 [     c]  BMSSP    2400.2 ms   Dijkstra    235.1 ms   ratio 10.21   comparisons  2.31x   ok
+  source    73159 [python]  BMSSP    2353.0 ms   Dijkstra    514.6 ms   ratio  4.57   comparisons  2.31x   ok
+  source    53737 [     c]  BMSSP    2349.6 ms   Dijkstra    238.2 ms   ratio  9.86   comparisons  2.26x   ok
+  source    53737 [python]  BMSSP    2315.8 ms   Dijkstra    540.9 ms   ratio  4.28   comparisons  2.26x   ok
+  source    45581 [     c]  BMSSP    2321.3 ms   Dijkstra    234.1 ms   ratio  9.91   comparisons  2.28x   ok
+  source    45581 [python]  BMSSP    2309.0 ms   Dijkstra    525.4 ms   ratio  4.39   comparisons  2.28x   ok
+  source   221209 [     c]  BMSSP    2396.8 ms   Dijkstra    233.7 ms   ratio 10.25   comparisons  2.30x   ok
+  source   221209 [python]  BMSSP    2377.5 ms   Dijkstra    519.3 ms   ratio  4.58   comparisons  2.30x   ok
+  source    16664 [     c]  BMSSP    2343.6 ms   Dijkstra    232.6 ms   ratio 10.08   comparisons  2.29x   ok
+  source    16664 [python]  BMSSP    2335.1 ms   Dijkstra    517.6 ms   ratio  4.51   comparisons  2.29x   ok
+  median [     c]: BMSSP 2346.6 ms   Dijkstra 233.2 ms   ratio 10.06   (k=2, t=6, l=4)
+  median [python]: BMSSP 2339.2 ms   Dijkstra 518.4 ms   ratio 4.51   (k=2, t=6, l=4)
+
+== USA-road-d.COL: n=435666 m=1057066 (loaded in 1.4s)
+  source   335244 [     c]  BMSSP    5603.8 ms   Dijkstra    366.9 ms   ratio 15.27   comparisons  2.17x   ok
+  source   335244 [python]  BMSSP    5708.5 ms   Dijkstra    783.4 ms   ratio  7.29   comparisons  2.17x   ok
+  source    58370 [     c]  BMSSP    5560.3 ms   Dijkstra    367.2 ms   ratio 15.14   comparisons  2.19x   ok
+  source    58370 [python]  BMSSP    5681.1 ms   Dijkstra    763.2 ms   ratio  7.44   comparisons  2.19x   ok
+  source    13113 [     c]  BMSSP    5601.8 ms   Dijkstra    360.5 ms   ratio 15.54   comparisons  2.19x   ok
+  source    13113 [python]  BMSSP    5661.7 ms   Dijkstra    786.0 ms   ratio  7.20   comparisons  2.19x   ok
+  source   388787 [     c]  BMSSP    5377.7 ms   Dijkstra    370.7 ms   ratio 14.51   comparisons  2.12x   ok
+  source   388787 [python]  BMSSP    5398.0 ms   Dijkstra    816.4 ms   ratio  6.61   comparisons  2.12x   ok
+  source   144195 [     c]  BMSSP    5918.7 ms   Dijkstra    381.4 ms   ratio 15.52   comparisons  2.17x   ok
+  source   144195 [python]  BMSSP    5630.3 ms   Dijkstra    795.6 ms   ratio  7.08   comparisons  2.17x   ok
+  source   128394 [     c]  BMSSP    5040.6 ms   Dijkstra    372.5 ms   ratio 13.53   comparisons  2.08x   ok
+  source   128394 [python]  BMSSP    5109.5 ms   Dijkstra    806.9 ms   ratio  6.33   comparisons  2.08x   ok
+  source   117027 [     c]  BMSSP    5464.3 ms   Dijkstra    362.7 ms   ratio 15.07   comparisons  2.15x   ok
+  source   117027 [python]  BMSSP    5490.1 ms   Dijkstra    783.9 ms   ratio  7.00   comparisons  2.15x   ok
+  source    73159 [     c]  BMSSP    5270.2 ms   Dijkstra    365.8 ms   ratio 14.41   comparisons  2.13x   ok
+  source    73159 [python]  BMSSP    5341.1 ms   Dijkstra    781.8 ms   ratio  6.83   comparisons  2.13x   ok
+  source   386124 [     c]  BMSSP    5331.4 ms   Dijkstra    372.8 ms   ratio 14.30   comparisons  2.12x   ok
+  source   386124 [python]  BMSSP    5362.2 ms   Dijkstra    784.8 ms   ratio  6.83   comparisons  2.12x   ok
+  source    53737 [     c]  BMSSP    5509.2 ms   Dijkstra    365.1 ms   ratio 15.09   comparisons  2.17x   ok
+  source    53737 [python]  BMSSP    5613.3 ms   Dijkstra    763.6 ms   ratio  7.35   comparisons  2.17x   ok
+  median [     c]: BMSSP 5486.8 ms   Dijkstra 367.1 ms   ratio 14.95   (k=2, t=7, l=3)
+  median [python]: BMSSP 5551.7 ms   Dijkstra 784.3 ms   ratio 7.08   (k=2, t=7, l=3)
+
+== USA-road-d.CAL: n=1890815 m=4657742 (loaded in 6.4s)
+  source  1340976 [     c]  BMSSP   18975.2 ms   Dijkstra   1822.2 ms   ratio 10.41   comparisons  1.97x   ok
+  source  1340976 [python]  BMSSP   18630.6 ms   Dijkstra   3794.9 ms   ratio  4.91   comparisons  1.97x   ok
+  source   233479 [     c]  BMSSP   17801.5 ms   Dijkstra   1754.1 ms   ratio 10.15   comparisons  1.96x   ok
+  source   233479 [python]  BMSSP   17890.8 ms   Dijkstra   3794.7 ms   ratio  4.71   comparisons  1.96x   ok
+  source    52452 [     c]  BMSSP   18755.1 ms   Dijkstra   1756.7 ms   ratio 10.68   comparisons  1.97x   ok
+  source    52452 [python]  BMSSP   18691.3 ms   Dijkstra   3848.8 ms   ratio  4.86   comparisons  1.97x   ok
+  source  1555145 [     c]  BMSSP   17973.5 ms   Dijkstra   1777.9 ms   ratio 10.11   comparisons  1.95x   ok
+  source  1555145 [python]  BMSSP   18021.7 ms   Dijkstra   3926.6 ms   ratio  4.59   comparisons  1.95x   ok
+  source   576779 [     c]  BMSSP   18732.9 ms   Dijkstra   1765.8 ms   ratio 10.61   comparisons  1.98x   ok
+  source   576779 [python]  BMSSP   18368.7 ms   Dijkstra   3680.8 ms   ratio  4.99   comparisons  1.98x   ok
+  source   513576 [     c]  BMSSP   17944.3 ms   Dijkstra   1695.7 ms   ratio 10.58   comparisons  1.97x   ok
+  source   513576 [python]  BMSSP   18493.8 ms   Dijkstra   3816.3 ms   ratio  4.85   comparisons  1.97x   ok
+  source   468107 [     c]  BMSSP   18082.6 ms   Dijkstra   1777.3 ms   ratio 10.17   comparisons  1.94x   ok
+  source   468107 [python]  BMSSP   18382.5 ms   Dijkstra   3810.5 ms   ratio  4.82   comparisons  1.94x   ok
+  source   292633 [     c]  BMSSP   18367.6 ms   Dijkstra   1713.3 ms   ratio 10.72   comparisons  1.96x   ok
+  source   292633 [python]  BMSSP   18314.7 ms   Dijkstra   3879.8 ms   ratio  4.72   comparisons  1.96x   ok
+  source  1544493 [     c]  BMSSP   17713.1 ms   Dijkstra   1759.1 ms   ratio 10.07   comparisons  1.95x   ok
+  source  1544493 [python]  BMSSP   17630.7 ms   Dijkstra   3710.7 ms   ratio  4.75   comparisons  1.95x   ok
+  source   214948 [     c]  BMSSP   16274.2 ms   Dijkstra   1754.1 ms   ratio  9.28   comparisons  1.90x   ok
+  source   214948 [python]  BMSSP   17104.4 ms   Dijkstra   3994.6 ms   ratio  4.28   comparisons  1.90x   ok
+  median [     c]: BMSSP 18028.1 ms   Dijkstra 1757.9 ms   ratio 10.26   (k=2, t=7, l=3)
+  median [python]: BMSSP 18341.7 ms   Dijkstra 3813.4 ms   ratio 4.81   (k=2, t=7, l=3)
+
+== USA-road-d.E: n=3598623 m=8778114 (loaded in 12.8s)
+  source  2681951 [     c]  BMSSP   34675.4 ms   Dijkstra   3681.8 ms   ratio  9.42   comparisons  2.13x   ok
+  source  2681951 [python]  BMSSP   34643.0 ms   Dijkstra   7704.0 ms   ratio  4.50   comparisons  2.13x   ok
+  source   466957 [     c]  BMSSP   36848.6 ms   Dijkstra   3358.3 ms   ratio 10.97   comparisons  2.22x   ok
+  source   466957 [python]  BMSSP   36795.4 ms   Dijkstra   7409.2 ms   ratio  4.97   comparisons  2.22x   ok
+  source   104903 [     c]  BMSSP   35051.8 ms   Dijkstra   3577.4 ms   ratio  9.80   comparisons  2.16x   ok
+  source   104903 [python]  BMSSP   34837.1 ms   Dijkstra   7527.1 ms   ratio  4.63   comparisons  2.16x   ok
+  source  3110289 [     c]  BMSSP   34999.3 ms   Dijkstra   3470.8 ms   ratio 10.08   comparisons  2.17x   ok
+  source  3110289 [python]  BMSSP   35343.8 ms   Dijkstra   7359.3 ms   ratio  4.80   comparisons  2.17x   ok
+  source  1153557 [     c]  BMSSP   36525.3 ms   Dijkstra   3556.1 ms   ratio 10.27   comparisons  2.16x   ok
+  source  1153557 [python]  BMSSP   35531.9 ms   Dijkstra   7603.9 ms   ratio  4.67   comparisons  2.16x   ok
+  source  1027151 [     c]  BMSSP   34289.8 ms   Dijkstra   3623.7 ms   ratio  9.46   comparisons  2.13x   ok
+  source  1027151 [python]  BMSSP   33615.9 ms   Dijkstra   7629.6 ms   ratio  4.41   comparisons  2.13x   ok
+  source   936214 [     c]  BMSSP   34394.7 ms   Dijkstra   3662.4 ms   ratio  9.39   comparisons  2.14x   ok
+  source   936214 [python]  BMSSP   34873.5 ms   Dijkstra   7869.5 ms   ratio  4.43   comparisons  2.14x   ok
+  source   585265 [     c]  BMSSP   35110.7 ms   Dijkstra   3895.5 ms   ratio  9.01   comparisons  2.14x   ok
+  source   585265 [python]  BMSSP   34462.5 ms   Dijkstra   7900.8 ms   ratio  4.36   comparisons  2.14x   ok
+  source  3088985 [     c]  BMSSP   36241.4 ms   Dijkstra   3418.9 ms   ratio 10.60   comparisons  2.19x   ok
+  source  3088985 [python]  BMSSP   35851.1 ms   Dijkstra   7321.5 ms   ratio  4.90   comparisons  2.19x   ok
+  source   429896 [     c]  BMSSP   36781.0 ms   Dijkstra   3309.9 ms   ratio 11.11   comparisons  2.23x   ok
+  source   429896 [python]  BMSSP   36952.0 ms   Dijkstra   7203.6 ms   ratio  5.13   comparisons  2.23x   ok
+  median [     c]: BMSSP 35081.2 ms   Dijkstra 3566.7 ms   ratio 9.84   (k=2, t=7, l=4)
+  median [python]: BMSSP 35108.7 ms   Dijkstra 7565.5 ms   ratio 4.64   (k=2, t=7, l=4)
+
+Results in results.csv
