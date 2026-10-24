@@ -8,6 +8,11 @@ and an experimental comparison with Dijkstra on the road networks of the 9th DIM
 Project for the PCA course (UnB). The repository contains the code, the experiment protocol,
 the collected data and the figures.
 
+| Author | Student ID |
+|---|---|
+| Pedro Lucas S. Fernandes | 262111919 |
+| Miguel Matos Costa de Frias Barbosa | 261113060 |
+
 - [1. The algorithm on one page](#1-the-algorithm-on-one-page)
 - [2. The code](#2-the-code)
 - [3. Dataset](#3-dataset)
